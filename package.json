@@ -1,0 +1,40 @@
+{
+  "name": "o-xilia",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000O\u0000-\u0000X\u0000i\u0000l\u0000i\u0000a\u0000\r\u0000 \u0000\r\u0000 \u0000#\u0000#\u0000 \u0000B\u0000y\u0000:\u0000 \u0000C\u0000r\u0000e\u00008\u0000T\u0000i\u0000v\u0000e\u0000 \u0000S\u0000y\u0000n\u0000c\u0000 \u0000-\u0000 \u0000E\u0000f\u0000f\u0000e\u0000r\u0000v\u0000e\u0000s\u0000c\u0000o\u0000 \u0000&\u0000 \u0000M\u0000o\u0000d\u0000u\u0000l\u0000o\u0000",
+  "main": "index.js",
+  "scripts": {
+    "dev:ui": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "dev": "vite",
+    "build:ui": "vite build",
+    "build:electron": "electron-builder",
+    "build": "npm run build:ui && npm run build:electron"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HansongProgramming/O-Xilia.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/HansongProgramming/O-Xilia/issues"
+  },
+  "homepage": "https://github.com/HansongProgramming/O-Xilia#readme",
+  "dependencies": {
+    "@blocknote/core": "^0.44.0",
+    "@blocknote/mantine": "^0.44.0",
+    "@blocknote/react": "^0.44.0",
+    "electron": "^39.2.6",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron-builder": "^26.0.12",
+    "vite": "^7.2.6",
+    "wait-on": "^9.0.3"
+  }
+}
