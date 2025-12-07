@@ -1,19 +1,33 @@
-import React, { useState } from "react";
-import Sidebar from "./components/Sidebar";
-import EditorPane from "./components/EditorPane";
+import React, { useState } from 'react';
+import Sidebar from './components/Sidebar';
+import EditorPane from './components/EditorPane';
+import './styles.css';
 
 export default function App() {
   const [activeNote, setActiveNote] = useState(null);
-  const refreshList = () => {}; // you can implement via events or state lifting
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefreshList = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar onOpenNote={(id) => setActiveNote(id)} />
-      <div style={{ flex: 1 }}>
+    <div className="app">
+      <Sidebar 
+        key={refreshKey}
+        onOpenNote={setActiveNote} 
+      />
+      <div className="main-content">
         {activeNote ? (
-          <EditorPane noteId={activeNote} onSaveSignal={refreshList} />
+          <EditorPane 
+            noteId={activeNote} 
+            onRefreshList={handleRefreshList}
+          />
         ) : (
-          <div style={{ padding: 20 }}>Open or create a note</div>
+          <div className="welcome-message">
+            <h1>Welcome to O-Xilia</h1>
+            <p>Open or create a note to get started</p>
+          </div>
         )}
       </div>
     </div>

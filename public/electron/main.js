@@ -15,7 +15,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "public/electron/preload.js"),
+      preload: path.join(__dirname, "preload.js"), // Fixed path
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -25,13 +25,13 @@ function createWindow() {
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    win.loadFile(path.join(__dirname, "../../dist/index.html"));
   }
 }
 
 app.whenReady().then(createWindow);
 
-// --- IPC Handlers ---
+// IPC Handlers
 ipcMain.handle("notes:list", async () => {
   const dir = await ensureNotesDir();
   const files = await fs.readdir(dir);
@@ -50,7 +50,8 @@ ipcMain.handle("notes:list", async () => {
 ipcMain.handle("notes:load", async (event, id) => {
   try {
     const raw = await fs.readFile(path.join(NOTES_DIR, `${id}.json`), "utf8");
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    return data.content || data; // Handle both old and new formats
   } catch {
     return null;
   }
