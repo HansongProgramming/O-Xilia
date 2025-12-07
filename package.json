@@ -1,52 +1,20 @@
 {
-  "name": "o-xilia",
-  "version": "1.0.0",
-  "description": "O-Xilia - A note-taking app with BlockNote editor",
-  "main": "public/electron/main.js",
+  "name": "oxilia",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:ui\" \"npm run dev:electron\"",
-    "dev:ui": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "build": "npm run build:ui && npm run build:electron",
-    "build:ui": "vite build",
-    "build:electron": "electron-builder"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
   },
   "dependencies": {
     "@blocknote/core": "^0.44.0",
     "@blocknote/mantine": "^0.44.0",
-    "@blocknote/react": "^0.44.0",
-    "@mantine/core": "^7.0.0",
-    "@mantine/hooks": "^7.0.0",
-    "electron": "^28.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "concurrently": "^8.0.0",
-    "electron-builder": "^24.0.0",
-    "vite": "^5.0.0",
-    "wait-on": "^7.0.0"
-  },
-  "build": {
-    "appId": "com.cre8tivesync.o-xilia",
-    "productName": "O-Xilia",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "dist/**/*",
-      "public/electron/**/*"
-    ],
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
+    "@blocknote/react": "^0.44.0"
   }
 }
