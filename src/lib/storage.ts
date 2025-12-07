@@ -1,14 +1,16 @@
 import type { Page } from "../types";
 
-// Are we inside an Electron **renderer** with Node integration?
-const isElectron = typeof process !== "undefined"
-  && process.versions?.node
-  && process.versions?.electron;
+const KEY = "oxilia:pages";
 
-// Pick the right implementation
-const impl = isElectron
-  ? await import("./storage-node")
-  : await import("./storage-browser");
+export function loadDB(): Page[] {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
-export const loadDB: () => Page[]       = impl.loadDB;
-export const saveDB: (p: Page[]) => void = impl.saveDB;
+export function saveDB(pages: Page[]): void {
+  localStorage.setItem(KEY, JSON.stringify(pages));
+}
