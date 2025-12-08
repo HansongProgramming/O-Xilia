@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { v4 as uuid } from "uuid";
-import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import { loadDB, saveDB } from "./lib/storage"; // now uses IPC
+import { BlockNoteEditor } from "@blocknote/core";
+import type { PartialBlock } from "@blocknote/core";
+import { loadDB, saveDB } from "./lib/storage";
 import type { Page } from "./types";
 
 import "@blocknote/mantine/style.css";
@@ -12,85 +13,53 @@ import "./index.css";
 export default function App() {
   const [pages, setPages] = useState<Page[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const [initialContent, setInitialContent] = useState<PartialBlock[] | "loading">("loading");
   const [isLoading, setIsLoading] = useState(true);
 
-  // -------- LOAD JSON FROM ELECTRON STORAGE --------
+  // -------- LOAD PAGES ----------
   useEffect(() => {
     async function init() {
       try {
         const data = await loadDB();
-
         if (data && data.length > 0) {
           setPages(data);
           setActiveId(data[0].id);
+          setInitialContent(data[0].blocks ?? [{ type: "paragraph", content: "" }]);
         } else {
-          // Create a default page
           const initial: Page = {
             id: uuid(),
             title: "Welcome to O-Xilia",
-            blocks: [
-              {
-                type: "paragraph",
-                content: "Start your first note..."
-              }
-            ]
+            blocks: [{ type: "paragraph", content: "Start your first note..." }]
           };
-
           setPages([initial]);
           setActiveId(initial.id);
+          setInitialContent(initial.blocks);
         }
       } catch (err) {
-        console.error("Failed to load DB:", err);
-
-        const fallback: Page = {
-          id: uuid(),
-          title: "Untitled",
-          blocks: []
-        };
-
+        console.error(err);
+        const fallback: Page = { id: uuid(), title: "Untitled", blocks: [{ type: "paragraph", content: "" }] };
         setPages([fallback]);
         setActiveId(fallback.id);
+        setInitialContent(fallback.blocks);
       } finally {
         setIsLoading(false);
       }
     }
-
     init();
   }, []);
 
-  // -------- UPDATE WINDOW TITLE ----------
+  // -------- CREATE EDITOR ----------
+  const editor = useMemo(() => {
+    if (initialContent === "loading") return undefined;
+    return BlockNoteEditor.create({ initialContent });
+  }, [initialContent]);
+
+  // -------- HANDLE BLOCKNOTE CHANGES ----------
   useEffect(() => {
-    const page = pages.find(p => p.id === activeId);
-    document.title = page?.title ? `${page.title} - O-Xilia` : "O-Xilia";
-  }, [activeId, pages]);
-
-  // -------- GET CURRENT PAGE ----------
-  const activePage = useMemo(() => {
-    return pages.find(p => p.id === activeId);
-  }, [pages, activeId]);
-
-  // -------- BLOCKNOTE EDITOR ----------
-  const editor = useCreateBlockNote({
-    initialContent: useMemo(() => {
-      if (!activePage?.blocks?.length) {
-        return [{ type: "paragraph", content: "" }];
-      }
-
-      const clean = activePage.blocks.filter(
-        b => b && typeof b === "object" && b.type
-      );
-
-      return clean.length ? clean : [{ type: "paragraph", content: "" }];
-    }, [activePage])
-  });
-
-  // -------- WHEN USER EDITS BLOCKNOTE --------
-  useEffect(() => {
-    if (!editor || isLoading) return;
+    if (!editor) return;
 
     const unsub = editor.onChange(() => {
-      const blocks = editor.topLevelBlocks;
-
+      const blocks = editor.document; // full content
       setPages(prev =>
         prev.map(p =>
           p.id === activeId ? { ...p, blocks } : p
@@ -99,102 +68,76 @@ export default function App() {
     });
 
     return () => unsub && unsub();
-  }, [editor, activeId, isLoading]);
+  }, [editor, activeId]);
 
-  // -------- AUTO-SAVE TO JSON FILE --------
+  // -------- AUTO-SAVE ----------
   useEffect(() => {
     if (!isLoading && pages.length > 0) {
-      console.log("Saving pages", pages); // <--- add this
-      saveDB(pages); // writes to JSON through IPC
+      saveDB(pages);
     }
   }, [pages, isLoading]);
 
   // -------- ACTIONS ----------
+  const activePage = useMemo(() => pages.find(p => p.id === activeId), [pages, activeId]);
+
   const addPage = () => {
     const id = uuid();
-    const newPage: Page = {
-      id,
-      title: "Untitled",
-      blocks: [{ type: "paragraph", content: "" }]
-    };
-
+    const newPage: Page = { id, title: "Untitled", blocks: [{ type: "paragraph", content: "" }] };
     setPages(prev => [...prev, newPage]);
     setActiveId(id);
+    setInitialContent(newPage.blocks);
   };
 
   const setTitle = (title: string) => {
-    setPages(prev =>
-      prev.map(p => (p.id === activeId ? { ...p, title } : p))
-    );
+    setPages(prev => prev.map(p => p.id === activeId ? { ...p, title } : p));
   };
 
   const deletePage = (id: string) => {
-    if (pages.length <= 1) {
-      alert("Cannot delete the last page");
-      return;
-    }
-
+    if (pages.length <= 1) return alert("Cannot delete the last page");
     const newPages = pages.filter(p => p.id !== id);
     setPages(newPages);
-
     if (activeId === id) {
       setActiveId(newPages[0].id);
+      setInitialContent(newPages[0].blocks);
     }
   };
 
-  // -------- UI ----------
-  if (isLoading) return <div className="loading">Loading...</div>;
+  if (isLoading || !editor) return <div className="loading">Loading...</div>;
 
   return (
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-header">
           <h2>O-Xilia</h2>
-          <button onClick={addPage} className="new-page-btn">+ New Page</button>
+          <button onClick={addPage}>+ New Page</button>
         </div>
-
         <ul className="pages-list">
-          {pages.map((page) => (
+          {pages.map(page => (
             <li
               key={page.id}
-              className={`page-item ${page.id === activeId ? "active" : ""}`}
-              onClick={() => setActiveId(page.id)}
+              className={page.id === activeId ? "active" : ""}
+              onClick={() => {
+                setActiveId(page.id);
+                setInitialContent(page.blocks);
+              }}
             >
               <span>{page.title || "Untitled"}</span>
-              <button
-                className="delete-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deletePage(page.id);
-                }}
-              >
-                ×
-              </button>
+              <button onClick={(e) => { e.stopPropagation(); deletePage(page.id); }}>×</button>
             </li>
           ))}
         </ul>
       </aside>
 
       <main className="main-content">
-        {activePage ? (
-          <>
-            <input
-              className="title-input"
-              value={activePage.title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Page title..."
-            />
-
-            <div className="editor-container">
-              <BlockNoteView editor={editor} />
-            </div>
-          </>
-        ) : (
-          <div className="welcome">
-            <h1>Welcome to O-Xilia</h1>
-            <p>Select or create a page to begin.</p>
-          </div>
-        )}
+        <input
+          className="title-input"
+          value={activePage?.title || ""}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Page title..."
+        />
+        <div className="editor-container">
+          <BlockNoteView editor={editor} />
+        </div>
       </main>
     </div>
   );
