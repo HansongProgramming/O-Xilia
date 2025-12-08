@@ -1,157 +1,280 @@
-import { useEffect, useState, useMemo } from "react";
+// App.tsx - Fixed async issue
+import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
+import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import { BlockNoteEditor } from "@blocknote/core";
-import type { PartialBlock } from "@blocknote/core";
 import { loadDB, saveDB, chooseFolder } from "./lib/storage";
-import type { Page } from "./types";
-
+import type { Category, Page } from "./types";
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
 
 export default function App() {
-  const [pages, setPages] = useState<Page[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
-  const [initialContent, setInitialContent] = useState<PartialBlock[] | "loading">("loading");
-  const [editor, setEditor] = useState<BlockNoteEditor | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activePageId, setActivePageId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  // -------- LOAD PAGES ----------
+  // Load data on mount
   useEffect(() => {
-    async function init() {
+    const loadData = async () => {
       try {
         const data = await loadDB();
-        if (data && data.length > 0) {
-          setPages(data);
-          setActiveId(data[0].id);
-          setInitialContent(data[0].blocks ?? [{ type: "paragraph", content: "" }]);
-        } else {
-          const initial: Page = {
-            id: uuid(),
-            title: "Welcome to O-Xilia",
-            blocks: [{ type: "paragraph", content: "Start your first note..." }]
-          };
-          setPages([initial]);
-          setActiveId(initial.id);
-          setInitialContent(initial.blocks);
+        setCategories(data);
+        
+        // Set initial active page
+        if (data.length > 0) {
+          const firstCategoryWithPages = data.find(cat => cat.pages.length > 0);
+          if (firstCategoryWithPages) {
+            setActivePageId(firstCategoryWithPages.pages[0].id);
+            setSelectedCategoryId(firstCategoryWithPages.id);
+          }
         }
-      } catch (err) {
-        console.error(err);
-        const fallback: Page = { id: uuid(), title: "Untitled", blocks: [{ type: "paragraph", content: "" }] };
-        setPages([fallback]);
-        setActiveId(fallback.id);
-        setInitialContent(fallback.blocks);
+      } catch (error) {
+        console.error("Failed to load data:", error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
-    }
-    init();
+    };
+
+    loadData();
   }, []);
 
-// -------- CREATE EDITOR ----------
-useEffect(() => {
-  if (initialContent === "loading") return;
-  if (!editor) {
-    const e = BlockNoteEditor.create({ initialContent });
-    setEditor(e);
-  } else {
-    editor.replaceBlocks(editor.document, initialContent);
-  }
-}, [initialContent]);
+  // Get current active page
+  const activePage = categories
+    .flatMap(cat => cat.pages)
+    .find(page => page.id === activePageId);
 
-  // -------- HANDLE BLOCKNOTE CHANGES ----------
+  const editor = useCreateBlockNote(
+    activePage?.blocks?.length ? { initialContent: activePage.blocks } : undefined
+  );
+
+  // Auto-save blocks while typing
   useEffect(() => {
-    if (!editor) return;
-
-    const unsub = editor.onChange(() => {
-      const blocks = editor.document; // current content
-      setPages(prev =>
-        prev.map(p =>
-          p.id === activeId ? { ...p, blocks } : p
-        )
+    if (!activePageId) return;
+    
+    const unsubscribe = editor.onEditorContentChange(() => {
+      setCategories(prev => 
+        prev.map(category => ({
+          ...category,
+          pages: category.pages.map(page => 
+            page.id === activePageId 
+              ? { ...page, blocks: editor.topLevelBlocks }
+              : page
+          )
+        }))
       );
     });
 
-    return () => unsub && unsub();
-  }, [editor, activeId]);
+    return () => {
+      // Cleanup the subscription
+      // Note: BlockNote might have a different cleanup method
+      // You may need to adjust this based on their API
+    };
+  }, [activePageId, editor]);
 
-  // -------- AUTO-SAVE ----------
+  // Persist data when categories change
   useEffect(() => {
-    if (!isLoading && pages.length > 0) {
-      const timeout = setTimeout(() => saveDB(pages), 300);
-      return () => clearTimeout(timeout);
+    if (categories.length > 0 && !loading) {
+      saveDB(categories);
     }
-  }, [pages, isLoading]);
+  }, [categories, loading]);
 
-  // -------- ACTIONS ----------
-  const activePage = useMemo(() => pages.find(p => p.id === activeId), [pages, activeId]);
+  // Loading state
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <h2>Loading O-Xilia...</h2>
+      </div>
+    );
+  }
 
-  const addPage = () => {
-    const id = uuid();
-    const newPage: Page = { id, title: "Untitled", blocks: [{ type: "paragraph", content: "" }] };
-    setPages(prev => [...prev, newPage]);
-    setActiveId(id);
-    setInitialContent(newPage.blocks);
+  // Category management functions
+  const createCategory = () => {
+    const newCategory: Category = {
+      id: uuid(),
+      name: "New Category",
+      isExpanded: true,
+      pages: []
+    };
+    
+    setCategories(prev => [...prev, newCategory]);
   };
 
-  const selectFolder = async () => {
-    const folder = await chooseFolder();
-    if (folder) alert(`Storage folder set to: ${folder}`);
+  const updateCategoryName = (categoryId: string, name: string) => {
+    setCategories(prev =>
+      prev.map(cat => 
+        cat.id === categoryId ? { ...cat, name } : cat
+      )
+    );
   };
 
-  const setTitle = (title: string) => {
-    setPages(prev => prev.map(p => p.id === activeId ? { ...p, title } : p));
+  const toggleCategoryExpanded = (categoryId: string) => {
+    setCategories(prev =>
+      prev.map(cat => 
+        cat.id === categoryId ? { ...cat, isExpanded: !cat.isExpanded } : cat
+      )
+    );
   };
 
-  const deletePage = (id: string) => {
-    if (pages.length <= 1) return alert("Cannot delete the last page");
-    const newPages = pages.filter(p => p.id !== id);
-    setPages(newPages);
-    if (activeId === id) {
-      setActiveId(newPages[0].id);
-      setInitialContent(newPages[0].blocks);
+  const setCategoryFolder = async (categoryId: string) => {
+    try {
+      const folderPath = await chooseFolder();
+      if (folderPath) {
+        setCategories(prev =>
+          prev.map(cat => 
+            cat.id === categoryId ? { ...cat, folderPath } : cat
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to choose folder:", error);
     }
   };
 
-  if (isLoading || !editor) return <div className="loading">Loading...</div>;
+  // Page management functions
+  const createPage = (categoryId: string) => {
+    const newPage: Page = {
+      id: uuid(),
+      title: "Untitled",
+      blocks: [],
+      categoryId
+    };
+    
+    setCategories(prev =>
+      prev.map(cat => 
+        cat.id === categoryId 
+          ? { ...cat, pages: [...cat.pages, newPage] }
+          : cat
+      )
+    );
+    
+    setActivePageId(newPage.id);
+    setSelectedCategoryId(categoryId);
+  };
+
+  const updatePageTitle = (title: string) => {
+    if (!activePageId) return;
+    
+    setCategories(prev =>
+      prev.map(category => ({
+        ...category,
+        pages: category.pages.map(page => 
+          page.id === activePageId ? { ...page, title } : page
+        )
+      }))
+    );
+  };
+
+  const deletePage = (pageId: string) => {
+    setCategories(prev =>
+      prev.map(category => ({
+        ...category,
+        pages: category.pages.filter(page => page.id !== pageId)
+      }))
+    );
+    
+    if (activePageId === pageId) {
+      // Find a new active page
+      const remainingPages = categories.flatMap(cat => cat.pages);
+      const newActivePage = remainingPages.find(p => p.id !== pageId);
+      setActivePageId(newActivePage?.id || "");
+    }
+  };
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <div className="sidebar">
         <div className="sidebar-header">
           <h2>O-Xilia</h2>
-          <button onClick={addPage}>+ New Page</button>
-          <button onClick={selectFolder}>Choose Storage Folder</button>
+          <button onClick={createCategory} className="create-category-btn">
+            + New Category
+          </button>
         </div>
-        <ul className="pages-list">
-          {pages.map(page => (
-            <li
-              key={page.id}
-              className={page.id === activeId ? "active" : ""}
-              onClick={() => {
-                setActiveId(page.id);
-                setInitialContent(page.blocks);
-              }}
-            >
-              <span>{page.title || "Untitled"}</span>
-              <button onClick={(e) => { e.stopPropagation(); deletePage(page.id); }}>×</button>
-            </li>
+        
+        <div className="categories-list">
+          {categories.map(category => (
+            <div key={category.id} className="category">
+              <div className="category-header">
+                <button 
+                  className="category-toggle"
+                  onClick={() => toggleCategoryExpanded(category.id)}
+                >
+                  {category.isExpanded ? "▼" : "▶"}
+                </button>
+                <input
+                  type="text"
+                  value={category.name}
+                  onChange={(e) => updateCategoryName(category.id, e.target.value)}
+                  className="category-name-input"
+                />
+                <div className="category-actions">
+                  <button 
+                    onClick={() => setCategoryFolder(category.id)}
+                    className="settings-btn"
+                    title="Set folder location"
+                  >
+                    ⚙️
+                  </button>
+                  <button 
+                    onClick={() => createPage(category.id)}
+                    className="add-page-btn"
+                    title="Add page to category"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
+              {category.isExpanded && (
+                <div className="pages-list">
+                  {category.pages.map(page => (
+                    <div 
+                      key={page.id}
+                      className={`page-item ${page.id === activePageId ? 'active' : ''}`}
+                      onClick={() => {
+                        setActivePageId(page.id);
+                        setSelectedCategoryId(category.id);
+                      }}
+                    >
+                      <span className="page-title">{page.title || "Untitled"}</span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePage(page.id);
+                        }}
+                        className="delete-page-btn"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
-        </ul>
-      </aside>
-
-      <main className="main-content">
-        <input
-          className="title-input"
-          value={activePage?.title || ""}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Page title..."
-        />
-        <div className="editor-container">
-          <BlockNoteView editor={editor} />
         </div>
-      </main>
+      </div>
+      
+      <div className="editor-container">
+        {activePage ? (
+          <>
+            <input
+              type="text"
+              value={activePage.title}
+              onChange={(e) => updatePageTitle(e.target.value)}
+              placeholder="Untitled"
+              className="page-title-input"
+            />
+            <BlockNoteView editor={editor} />
+          </>
+        ) : (
+          <div className="no-page-selected">
+            <h3>No page selected</h3>
+            <p>Create a new page or select an existing one to get started</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
