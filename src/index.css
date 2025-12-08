@@ -1,3 +1,4 @@
+/* Nordic Theme Adjustments for Category System */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -69,23 +70,24 @@ body {
                     "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --bn-border-radius: 4px;
 }
+
 /* Layout */
 .app {
   display: flex;
   height: 100vh;
 }
 
-/* Sidebar */
+/* Sidebar with Nordic theme */
 .sidebar {
   width: 360px;
-  background-color: #3B4151;
-  /* Slightly lighter dark */
-  border: 1.5px solid #444B57;
+  background-color: #3B4252;
+  border: 1.5px solid #434C5E;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   padding: 1rem;
   margin: 1rem;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -93,66 +95,177 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #434C5E;
 }
 
 .sidebar-header h2 {
   font-size: 1.5rem;
-  color: #eceff4;
+  color: #ECEFF4;
+  font-weight: 600;
 }
 
-.sidebar-header button {
-  background-color: #5e81ac;
-  color: #eceff4;
+.create-category-btn {
+  background-color: #5E81AC;
+  color: #ECEFF4;
   border: none;
   border-radius: 6px;
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
 }
 
-.sidebar-header button:hover {
-  background-color: #81a1c1;
+.create-category-btn:hover {
+  background-color: #81A1C1;
 }
 
-.pages-list {
-  list-style: none;
+/* Categories List */
+.categories-list {
   flex-grow: 1;
   overflow-y: auto;
 }
 
-.pages-list li {
+.category {
+  margin-bottom: 0.5rem;
+}
+
+.category-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
+  background-color: #434C5E;
+  border-radius: 8px;
   margin-bottom: 0.3rem;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.pages-list li:hover {
-  background-color: #434c5e;
+.category-header:hover {
+  background-color: #4C566A;
 }
 
-.pages-list li.active {
-  background-color: #81a1c1;
-  color: #2e3440;
+.category-toggle {
+  background: none;
+  border: none;
+  color: #D8DEE9;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  margin-right: 0.5rem;
+  font-size: 0.8rem;
+  transition: color 0.2s ease;
 }
 
-.pages-list li button {
+.category-toggle:hover {
+  color: #ECEFF4;
+}
+
+.category-name-input {
+  flex: 1;
   background: transparent;
   border: none;
-  font-size: 1.2rem;
+  color: #ECEFF4;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.category-name-input:focus {
+  outline: none;
+  background-color: #4C566A;
+}
+
+.category-actions {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+}
+
+.settings-btn, .add-page-btn {
+  background: none;
+  border: none;
+  color: #D8DEE9;
   cursor: pointer;
-  color: #bf616a;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
-.pages-list li button:hover {
-  color: #d08770;
+.settings-btn:hover, .add-page-btn:hover {
+  background-color: #4C566A;
+  color: #ECEFF4;
 }
 
-/* Main content */
+.settings-btn:hover {
+  color: #88C0D0;
+}
+
+.add-page-btn:hover {
+  color: #A3BE8C;
+}
+
+/* Pages List within Categories */
+.pages-list {
+  margin-left: 1.5rem;
+  margin-top: 0.3rem;
+}
+
+.page-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+  color: #D8DEE9;
+  transition: all 0.2s ease;
+}
+
+.page-item:hover {
+  background-color: #4C566A;
+  color: #ECEFF4;
+}
+
+.page-item.active {
+  background-color: #5E81AC;
+  color: #ECEFF4;
+}
+
+.page-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.delete-page-btn {
+  background: none;
+  border: none;
+  color: #BF616A;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.page-item:hover .delete-page-btn {
+  opacity: 1;
+}
+
+.delete-page-btn:hover {
+  background-color: #BF616A;
+  color: #ECEFF4;
+}
+
+/* Main Content Area */
 .main-content {
   flex-grow: 1;
   display: flex;
@@ -162,26 +275,101 @@ body {
   overflow: hidden;
 }
 
-.title-input {
-  font-size: 1.5rem;
-  padding: 0.5rem 0.8rem;
+/* Page Title Input */
+.page-title-input {
+  font-size: 1.8rem;
+  padding: 0.8rem 1rem;
   border: none;
-  border-bottom: 2px solid #4c566a;
-  margin-bottom: 1rem;
+  border-bottom: 2px solid #434C5E;
+  margin-bottom: 1.5rem;
   background-color: transparent;
-  color: #eceff4;
+  color: #ECEFF4;
+  font-weight: 600;
+  transition: border-color 0.2s ease;
 }
 
-.title-input:focus {
+.page-title-input:focus {
   outline: none;
-  border-color: #81a1c1;
+  border-color: #5E81AC;
 }
 
+/* Editor Container */
 .editor-container {
   flex-grow: 1;
   background-color: #2E3440;
-  /* Dark editor background */
   border-radius: 8px;
-  padding: 1rem;
   overflow-y: auto;
+  padding: 0;
+}
+
+/* No Page Selected State */
+.no-page-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #4C566A;
+  text-align: center;
+}
+
+.no-page-selected h3 {
+  margin-bottom: 0.5rem;
+  color: #D8DEE9;
+  font-size: 1.2rem;
+}
+
+.no-page-selected p {
+  color: #4C566A;
+  font-size: 0.9rem;
+}
+
+/* Loading Screen */
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #2E3440;
+  color: #D8DEE9;
+}
+
+.loading-screen h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ECEFF4;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #3B4252;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4C566A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #616E88;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 280px;
+  }
+  
+  .category-header {
+    padding: 0.5rem 0.6rem;
+  }
+  
+  .page-item {
+    padding: 0.4rem 0.6rem;
+  }
 }

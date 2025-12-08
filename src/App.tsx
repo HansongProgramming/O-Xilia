@@ -1,10 +1,12 @@
-// App.tsx - Fixed async issue
+// App.tsx - Fixed to work with JSON saving
 import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { BlockNoteEditor } from "@blocknote/core";
+import type { PartialBlock } from "@blocknote/core";
 import { loadDB, saveDB, chooseFolder } from "./lib/storage";
 import type { Category, Page } from "./types";
+
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
@@ -12,84 +14,172 @@ import "./index.css";
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePageId, setActivePageId] = useState<string>("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [editor, setEditor] = useState<BlockNoteEditor | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load data on mount
+  // -------- LOAD DATA ----------
   useEffect(() => {
-    const loadData = async () => {
+    async function init() {
       try {
         const data = await loadDB();
-        setCategories(data);
-        
-        // Set initial active page
-        if (data.length > 0) {
-          const firstCategoryWithPages = data.find(cat => cat.pages.length > 0);
-          if (firstCategoryWithPages) {
+        if (data && data.length > 0) {
+          setCategories(data);
+          
+          // Set initial active page
+          const firstCategoryWithPages = data.find(cat => cat.pages && cat.pages.length > 0);
+          if (firstCategoryWithPages && firstCategoryWithPages.pages && firstCategoryWithPages.pages.length > 0) {
             setActivePageId(firstCategoryWithPages.pages[0].id);
-            setSelectedCategoryId(firstCategoryWithPages.id);
           }
+        } else {
+          // Create default category and page
+          const defaultPage: Page = {
+            id: uuid(),
+            title: "Welcome to O-Xilia",
+            blocks: [{ type: "paragraph", content: "Start your first note..." }],
+            categoryId: "default-category"
+          };
+          
+          const defaultCategory: Category = {
+            id: "default-category",
+            name: "Default",
+            isExpanded: true,
+            pages: [defaultPage]
+          };
+          
+          setCategories([defaultCategory]);
+          setActivePageId(defaultPage.id);
         }
-      } catch (error) {
-        console.error("Failed to load data:", error);
+      } catch (err) {
+        console.error("Failed to load data:", err);
+        // Create fallback
+        const fallbackPage: Page = { 
+          id: uuid(), 
+          title: "Untitled", 
+          blocks: [{ type: "paragraph", content: "" }],
+          categoryId: "fallback-category"
+        };
+        const fallbackCategory: Category = {
+          id: "fallback-category",
+          name: "Default",
+          isExpanded: true,
+          pages: [fallbackPage]
+        };
+        setCategories([fallbackCategory]);
+        setActivePageId(fallbackPage.id);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
-
-    loadData();
+    }
+    init();
   }, []);
 
-  // Get current active page
-  const activePage = categories
-    .flatMap(cat => cat.pages)
-    .find(page => page.id === activePageId);
-
-  const editor = useCreateBlockNote(
-    activePage?.blocks?.length ? { initialContent: activePage.blocks } : undefined
-  );
-
-  // Auto-save blocks while typing
+  // -------- CREATE EDITOR ----------
   useEffect(() => {
-    if (!activePageId) return;
+    if (isLoading) return;
     
-    const unsubscribe = editor.onEditorContentChange(() => {
-      setCategories(prev => 
+    const activePage = categories
+      .flatMap(cat => cat.pages || [])
+      .find(page => page && page.id === activePageId);
+
+    if (!activePage) return;
+
+    if (!editor) {
+      const e = BlockNoteEditor.create({ 
+        initialContent: activePage.blocks || [] 
+      });
+      setEditor(e);
+    } else {
+      const activePageNow = categories
+        .flatMap(cat => cat.pages || [])
+        .find(page => page && page.id === activePageId);
+      
+      if (activePageNow) {
+        editor.replaceBlocks(editor.document, activePageNow.blocks || []);
+      }
+    }
+  }, [activePageId, isLoading]);
+
+  // -------- HANDLE BLOCKNOTE CHANGES ----------
+  useEffect(() => {
+    if (!editor || isLoading) return;
+
+    const unsub = editor.onChange(() => {
+      const blocks = editor.document;
+      
+      setCategories(prev =>
         prev.map(category => ({
           ...category,
-          pages: category.pages.map(page => 
-            page.id === activePageId 
-              ? { ...page, blocks: editor.topLevelBlocks }
+          pages: (category.pages || []).map(page => 
+            page && page.id === activePageId 
+              ? { ...page, blocks }
               : page
           )
         }))
       );
     });
 
-    return () => {
-      // Cleanup the subscription
-      // Note: BlockNote might have a different cleanup method
-      // You may need to adjust this based on their API
-    };
-  }, [activePageId, editor]);
+    return () => unsub && unsub();
+  }, [editor, activePageId, isLoading]);
 
-  // Persist data when categories change
+  // -------- AUTO-SAVE ----------
   useEffect(() => {
-    if (categories.length > 0 && !loading) {
-      saveDB(categories);
+    if (!isLoading && categories && categories.length > 0) {
+      const timeout = setTimeout(() => saveDB(categories), 300);
+      return () => clearTimeout(timeout);
     }
-  }, [categories, loading]);
+  }, [categories, isLoading]);
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <h2>Loading O-Xilia...</h2>
-      </div>
+  // -------- ACTIONS ----------
+  const createPage = (categoryId: string) => {
+    const newPage: Page = {
+      id: uuid(),
+      title: "Untitled",
+      blocks: [{ type: "paragraph", content: "" }],
+      categoryId
+    };
+    
+    setCategories(prev =>
+      prev.map(cat => 
+        cat && cat.id === categoryId 
+          ? { ...cat, pages: [...(cat.pages || []), newPage] }
+          : cat
+      )
     );
-  }
+    
+    setActivePageId(newPage.id);
+  };
 
-  // Category management functions
+  const updatePageTitle = (title: string) => {
+    if (!activePageId) return;
+    
+    setCategories(prev =>
+      prev.map(category => ({
+        ...category,
+        pages: (category.pages || []).map(page => 
+          page && page.id === activePageId ? { ...page, title } : page
+        )
+      }))
+    );
+  };
+
+  const deletePage = (pageId: string) => {
+    const totalPages = categories.reduce((sum, cat) => sum + (cat.pages?.length || 0), 0);
+    if (totalPages <= 1) return alert("Cannot delete the last page");
+    
+    setCategories(prev =>
+      prev.map(category => ({
+        ...category,
+        pages: (category.pages || []).filter(page => page && page.id !== pageId)
+      }))
+    );
+    
+    if (activePageId === pageId) {
+      const remainingPages = categories.flatMap(cat => cat.pages || []).filter(p => p && p.id !== pageId);
+      const newActivePage = remainingPages.length > 0 ? remainingPages[0] : null;
+      setActivePageId(newActivePage?.id || "");
+    }
+  };
+
   const createCategory = () => {
     const newCategory: Category = {
       id: uuid(),
@@ -98,21 +188,21 @@ export default function App() {
       pages: []
     };
     
-    setCategories(prev => [...prev, newCategory]);
+    setCategories(prev => [...(prev || []), newCategory]);
   };
 
   const updateCategoryName = (categoryId: string, name: string) => {
     setCategories(prev =>
-      prev.map(cat => 
-        cat.id === categoryId ? { ...cat, name } : cat
+      (prev || []).map(cat => 
+        cat && cat.id === categoryId ? { ...cat, name } : cat
       )
     );
   };
 
   const toggleCategoryExpanded = (categoryId: string) => {
     setCategories(prev =>
-      prev.map(cat => 
-        cat.id === categoryId ? { ...cat, isExpanded: !cat.isExpanded } : cat
+      (prev || []).map(cat => 
+        cat && cat.id === categoryId ? { ...cat, isExpanded: !cat.isExpanded } : cat
       )
     );
   };
@@ -122,8 +212,8 @@ export default function App() {
       const folderPath = await chooseFolder();
       if (folderPath) {
         setCategories(prev =>
-          prev.map(cat => 
-            cat.id === categoryId ? { ...cat, folderPath } : cat
+          (prev || []).map(cat => 
+            cat && cat.id === categoryId ? { ...cat, folderPath } : cat
           )
         );
       }
@@ -132,116 +222,61 @@ export default function App() {
     }
   };
 
-  // Page management functions
-  const createPage = (categoryId: string) => {
-    const newPage: Page = {
-      id: uuid(),
-      title: "Untitled",
-      blocks: [],
-      categoryId
-    };
-    
-    setCategories(prev =>
-      prev.map(cat => 
-        cat.id === categoryId 
-          ? { ...cat, pages: [...cat.pages, newPage] }
-          : cat
-      )
-    );
-    
-    setActivePageId(newPage.id);
-    setSelectedCategoryId(categoryId);
-  };
+  if (isLoading) return <div className="loading-screen"><h2>Loading...</h2></div>;
 
-  const updatePageTitle = (title: string) => {
-    if (!activePageId) return;
-    
-    setCategories(prev =>
-      prev.map(category => ({
-        ...category,
-        pages: category.pages.map(page => 
-          page.id === activePageId ? { ...page, title } : page
-        )
-      }))
-    );
-  };
-
-  const deletePage = (pageId: string) => {
-    setCategories(prev =>
-      prev.map(category => ({
-        ...category,
-        pages: category.pages.filter(page => page.id !== pageId)
-      }))
-    );
-    
-    if (activePageId === pageId) {
-      // Find a new active page
-      const remainingPages = categories.flatMap(cat => cat.pages);
-      const newActivePage = remainingPages.find(p => p.id !== pageId);
-      setActivePageId(newActivePage?.id || "");
-    }
-  };
+  const activePage = categories
+    .flatMap(cat => cat.pages || [])
+    .find(page => page && page.id === activePageId);
 
   return (
     <div className="app">
-      <div className="sidebar">
+      <aside className="sidebar">
         <div className="sidebar-header">
           <h2>O-Xilia</h2>
-          <button onClick={createCategory} className="create-category-btn">
-            + New Category
-          </button>
+          <button onClick={createCategory}>+ New Category</button>
+          <button onClick={() => setCategoryFolder("global")}>Choose Folder</button>
         </div>
         
         <div className="categories-list">
-          {categories.map(category => (
-            <div key={category.id} className="category">
+          {categories && categories.map(category => (
+            <div key={category?.id} className="category">
               <div className="category-header">
                 <button 
                   className="category-toggle"
-                  onClick={() => toggleCategoryExpanded(category.id)}
+                  onClick={() => toggleCategoryExpanded(category?.id)}
                 >
-                  {category.isExpanded ? "▼" : "▶"}
+                  {category?.isExpanded ? "▼" : "▶"}
                 </button>
                 <input
                   type="text"
-                  value={category.name}
-                  onChange={(e) => updateCategoryName(category.id, e.target.value)}
+                  value={category?.name || ""}
+                  onChange={(e) => updateCategoryName(category?.id, e.target.value)}
                   className="category-name-input"
                 />
-                <div className="category-actions">
-                  <button 
-                    onClick={() => setCategoryFolder(category.id)}
-                    className="settings-btn"
-                    title="Set folder location"
-                  >
-                    ⚙️
-                  </button>
-                  <button 
-                    onClick={() => createPage(category.id)}
-                    className="add-page-btn"
-                    title="Add page to category"
-                  >
-                    +
-                  </button>
-                </div>
+                <button 
+                  onClick={() => createPage(category?.id)}
+                  className="add-page-btn"
+                  title="Add page to category"
+                >
+                  +
+                </button>
               </div>
               
-              {category.isExpanded && (
+              {category?.isExpanded && (
                 <div className="pages-list">
-                  {category.pages.map(page => (
+                  {category?.pages && category.pages.map(page => (
                     <div 
-                      key={page.id}
-                      className={`page-item ${page.id === activePageId ? 'active' : ''}`}
+                      key={page?.id}
+                      className={`page-item ${page?.id === activePageId ? 'active' : ''}`}
                       onClick={() => {
-                        setActivePageId(page.id);
-                        setSelectedCategoryId(category.id);
+                        setActivePageId(page?.id);
                       }}
                     >
-                      <span className="page-title">{page.title || "Untitled"}</span>
+                      <span className="page-title">{page?.title || "Untitled"}</span>
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          deletePage(page.id);
+                          deletePage(page?.id);
                         }}
                         className="delete-page-btn"
                       >
@@ -254,19 +289,20 @@ export default function App() {
             </div>
           ))}
         </div>
-      </div>
-      
-      <div className="editor-container">
-        {activePage ? (
+      </aside>
+
+      <main className="main-content">
+        {activePage && editor ? (
           <>
             <input
-              type="text"
-              value={activePage.title}
-              onChange={(e) => updatePageTitle(e.target.value)}
-              placeholder="Untitled"
-              className="page-title-input"
+              className="title-input"
+              value={activePage.title || ""}
+              onChange={e => updatePageTitle(e.target.value)}
+              placeholder="Page title..."
             />
-            <BlockNoteView editor={editor} />
+            <div className="editor-container">
+              <BlockNoteView editor={editor} />
+            </div>
           </>
         ) : (
           <div className="no-page-selected">
@@ -274,7 +310,7 @@ export default function App() {
             <p>Create a new page or select an existing one to get started</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
