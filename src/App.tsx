@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor } from "@blocknote/core";
-import type { PartialBlock } from "@blocknote/core";
 import { loadDB, saveDB, chooseFolder } from "./lib/storage";
 import type { Category, Page } from "./types";
 
