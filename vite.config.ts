@@ -6,5 +6,9 @@ export default defineConfig({
   server: { host: "localhost" },
   resolve: {
     alias: { "node:crypto": "crypto" },
-  },
+  },  
+  base: "./",
+  build: {
+    outDir: "dist",
+  }
 });

@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "electron": "set NODE_ENV=development && electron ./electron/main.cjs",  
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "electron ./electron/main.js"
+    
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^39.2.6",
     "typescript": "~5.9.3",
     "vite": "^7.2.6"
   },
@@ -18,6 +22,7 @@
     "@blocknote/core": "^0.44.0",
     "@blocknote/mantine": "^0.44.0",
     "@blocknote/react": "^0.44.0",
+    "@electron-toolkit/preload": "^3.0.2",
     "uuid": "^13.0.0"
   }
 }
