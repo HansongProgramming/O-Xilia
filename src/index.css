@@ -373,3 +373,19 @@ body {
     padding: 0.4rem 0.6rem;
   }
 }
+
+.title-input {
+  font-size: 2rem;
+  font-weight: 600;
+  padding: 0.6rem 0.4rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #434C5E;
+  color: #ECEFF4;
+  margin-bottom: 1.3rem;
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: #5E81AC;
+}
