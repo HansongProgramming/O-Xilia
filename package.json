@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "electron": "set NODE_ENV=development && electron ./electron/main.cjs",  
+    "electron": "set NODE_ENV=development && electron ./electron/main.js",  
     "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "electron ./electron/main.js"

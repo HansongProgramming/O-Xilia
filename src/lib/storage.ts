@@ -1,38 +1,19 @@
 import type { Page } from "../types";
 
-const KEY = "oxilia:pages";
-
-export function loadDB(): Page[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const data = JSON.parse(raw);
-      // Validate data structure
-      if (Array.isArray(data)) {
-        return data.filter(page => 
-          page && 
-          typeof page.id === 'string' && 
-          typeof page.title === 'string' && 
-          Array.isArray(page.blocks)
-        );
-      }
-    }
-    return [];
-  } catch (error) {
-    console.error("Failed to load data from localStorage:", error);
-    return [];
+export async function loadDB(): Promise<Page[]> {
+  if ((window as any).storage) {
+    return await (window as any).storage.load();
   }
+
+  const raw = localStorage.getItem("oxilia:pages");
+  return raw ? JSON.parse(raw) : [];
 }
 
-export function saveDB(pages: Page[]): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(pages));
-  } catch (error) {
-    console.error("Failed to save data to localStorage:", error);
-    // Handle quota exceeded or other storage errors
-    if (error instanceof Error && error.name === 'QuotaExceededError') {
-      alert("Storage quota exceeded. Please delete some pages to save new content.");
-    }
+export async function saveDB(pages: Page[]): Promise<void> {
+  if ((window as any).storage) {
+    await (window as any).storage.save(pages);
+    return;
   }
-}
 
+  localStorage.setItem("oxilia:pages", JSON.stringify(pages));
+}
