@@ -81,7 +81,7 @@ body {
 .sidebar {
   width: 360px;
   background-color: #3B4252;
-  border: 1.5px solid #434C5E;
+  border: 2px solid #434C5E;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -128,20 +128,20 @@ body {
 }
 
 .category {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.2rem;
 }
 
 .category-header {
   display: flex;
   align-items: center;
-  padding: 0.6rem 0.8rem;
+  padding: 0.4rem 0.5rem;
   border-radius: 8px;
   margin-bottom: 0.3rem;
   transition: background-color 0.2s ease;
 }
 
 .category-header input{
-  color : #727780;
+  color : #7a7d83;
 }
 
 .category-header:hover input{
@@ -225,7 +225,7 @@ body {
   cursor: pointer;
   margin-bottom: 0.2rem;
   font-size: 0.9rem;
-  color: #D8DEE9;
+  color: #9299A8;
   transition: all 0.2s ease;
   margin-left: 1.5rem;
 }
@@ -370,7 +370,7 @@ body {
   }
   
   .category-header {
-    padding: 0.5rem 0.6rem;
+    padding: 0.2rem 0.2rem;
   }
   
   .page-item {
@@ -379,7 +379,7 @@ body {
 }
 
 .title-input {
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 600;
   padding: 0.6rem 0.4rem;
   background: transparent;
