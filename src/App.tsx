@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid";
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor } from "@blocknote/core";
 import type { PartialBlock } from "@blocknote/core";
-import { loadDB, saveDB } from "./lib/storage";
+import { loadDB, saveDB, chooseFolder } from "./lib/storage";
 import type { Page } from "./types";
 
 import "@blocknote/mantine/style.css";
@@ -14,6 +14,7 @@ export default function App() {
   const [pages, setPages] = useState<Page[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [initialContent, setInitialContent] = useState<PartialBlock[] | "loading">("loading");
+  const [editor, setEditor] = useState<BlockNoteEditor | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   // -------- LOAD PAGES ----------
@@ -48,18 +49,23 @@ export default function App() {
     init();
   }, []);
 
-  // -------- CREATE EDITOR ----------
-  const editor = useMemo(() => {
-    if (initialContent === "loading") return undefined;
-    return BlockNoteEditor.create({ initialContent });
-  }, [initialContent]);
+// -------- CREATE EDITOR ----------
+useEffect(() => {
+  if (initialContent === "loading") return;
+  if (!editor) {
+    const e = BlockNoteEditor.create({ initialContent });
+    setEditor(e);
+  } else {
+    editor.replaceBlocks(editor.document, initialContent);
+  }
+}, [initialContent]);
 
   // -------- HANDLE BLOCKNOTE CHANGES ----------
   useEffect(() => {
     if (!editor) return;
 
     const unsub = editor.onChange(() => {
-      const blocks = editor.document; // full content
+      const blocks = editor.document; // current content
       setPages(prev =>
         prev.map(p =>
           p.id === activeId ? { ...p, blocks } : p
@@ -73,7 +79,8 @@ export default function App() {
   // -------- AUTO-SAVE ----------
   useEffect(() => {
     if (!isLoading && pages.length > 0) {
-      saveDB(pages);
+      const timeout = setTimeout(() => saveDB(pages), 300);
+      return () => clearTimeout(timeout);
     }
   }, [pages, isLoading]);
 
@@ -86,6 +93,11 @@ export default function App() {
     setPages(prev => [...prev, newPage]);
     setActiveId(id);
     setInitialContent(newPage.blocks);
+  };
+
+  const selectFolder = async () => {
+    const folder = await chooseFolder();
+    if (folder) alert(`Storage folder set to: ${folder}`);
   };
 
   const setTitle = (title: string) => {
@@ -110,6 +122,7 @@ export default function App() {
         <div className="sidebar-header">
           <h2>O-Xilia</h2>
           <button onClick={addPage}>+ New Page</button>
+          <button onClick={selectFolder}>Choose Storage Folder</button>
         </div>
         <ul className="pages-list">
           {pages.map(page => (
