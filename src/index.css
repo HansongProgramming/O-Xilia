@@ -6,17 +6,69 @@
 }
 
 body {
-  background-color: #2E333F;
+  background-color: #2E3440;
   color: #d8dee9;
   height: 100vh;
   overflow: hidden;
 }
 
+/* Nordic (Obsidian) theme overrides for BlockNote */
 .bn-editor {
-  --bn-colors-editor-text: #ffffff;
-  --bn-colors-editor-background: #2E333F;
-}
+  --bn-colors-editor-text: #D8DEE9;
+  --bn-colors-editor-background: #2E3440;
 
+  --bn-colors-menu-text: #ECEFF4;
+  --bn-colors-menu-background: #3B4252;
+
+  --bn-colors-tooltip-text: #ECEFF4;
+  --bn-colors-tooltip-background: #434C5E;
+
+  --bn-colors-hovered-text: #ECEFF4;
+  --bn-colors-hovered-background: #434C5E;
+
+  --bn-colors-selected-text: #2E3440;
+  --bn-colors-selected-background: #88C0D0;
+
+  --bn-colors-disabled-text: #4C566A;
+  --bn-colors-disabled-background: #3B4252;
+
+  --bn-colors-shadow: rgba(0, 0, 0, 0.35);
+  --bn-colors-border: #434C5E;
+  --bn-colors-side-menu: #4C566A;
+
+  /* Highlight palette → Nordic pastels */
+  --bn-colors-highlights-gray-text: #616E88;
+  --bn-colors-highlights-gray-background: #3B4252;
+
+  --bn-colors-highlights-brown-text: #A3BE8C;
+  --bn-colors-highlights-brown-background: #374247;
+
+  --bn-colors-highlights-red-text: #BF616A;
+  --bn-colors-highlights-red-background: #402A2E;
+
+  --bn-colors-highlights-orange-text: #D08770;
+  --bn-colors-highlights-orange-background: #49333A;
+
+  --bn-colors-highlights-yellow-text: #EBCB8B;
+  --bn-colors-highlights-yellow-background: #494025;
+
+  --bn-colors-highlights-green-text: #A3BE8C;
+  --bn-colors-highlights-green-background: #2E3A2E;
+
+  --bn-colors-highlights-blue-text: #81A1C1;
+  --bn-colors-highlights-blue-background: #2B3A48;
+
+  --bn-colors-highlights-purple-text: #B48EAD;
+  --bn-colors-highlights-purple-background: #3A2E42;
+
+  --bn-colors-highlights-pink-text: #E5B9C6;
+  --bn-colors-highlights-pink-background: #472E3A;
+
+  /* Typography & radius */
+  --bn-font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+                    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --bn-border-radius: 4px;
+}
 /* Layout */
 .app {
   display: flex;
@@ -106,7 +158,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  background-color: #2E333F;
+  background-color: #2E3440;
   overflow: hidden;
 }
 
@@ -127,7 +179,7 @@ body {
 
 .editor-container {
   flex-grow: 1;
-  background-color: #2E333F;
+  background-color: #2E3440;
   /* Dark editor background */
   border-radius: 8px;
   padding: 1rem;
