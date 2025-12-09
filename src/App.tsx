@@ -1,4 +1,4 @@
-// App.tsx - Fixed to work with JSON saving + improved context menus (sidebar & category)
+// App.tsx - Notion-style icons + inline emoji picker for categories & pages
 import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -8,6 +8,8 @@ import type { Category, Page } from "./types";
 
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 import "./index.css";
 
 type ContextMenuState = {
@@ -16,6 +18,14 @@ type ContextMenuState = {
   y: number;
   type: "category" | "sidebar" | null;
   categoryId: string | null;
+};
+
+type IconPickerState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  forType: "category" | "page" | null;
+  id: string | null;
 };
 
 export default function App() {
@@ -31,6 +41,13 @@ export default function App() {
     type: null,
     categoryId: null
   });
+  const [iconPicker, setIconPicker] = useState<IconPickerState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    forType: null,
+    id: null
+  });
 
   // -------- LOAD DATA ----------
   useEffect(() => {
@@ -40,23 +57,24 @@ export default function App() {
         if (data && data.length > 0) {
           setCategories(data);
 
-          // Set initial active page if not set
           const firstCategoryWithPages = data.find(cat => (cat.pages || []).length > 0);
           if (firstCategoryWithPages) {
             setActivePageId(prev => prev || firstCategoryWithPages.pages![0].id);
           }
         } else {
-          // Create default category and page
+          // default
           const defaultPage: Page = {
             id: uuid(),
             title: "Welcome to O-Xilia",
             blocks: [{ type: "paragraph", content: "Start your first note..." }],
-            categoryId: "default-category"
+            categoryId: "default-category",
+            icon: "📄"
           };
 
           const defaultCategory: Category = {
             id: "default-category",
             name: "Default",
+            icon: "📁",
             isExpanded: true,
             pages: [defaultPage]
           };
@@ -66,16 +84,17 @@ export default function App() {
         }
       } catch (err) {
         console.error("Failed to load data:", err);
-        // Create fallback
         const fallbackPage: Page = {
           id: uuid(),
           title: "Untitled",
           blocks: [{ type: "paragraph", content: "" }],
-          categoryId: "fallback-category"
+          categoryId: "fallback-category",
+          icon: "📄"
         };
         const fallbackCategory: Category = {
           id: "fallback-category",
           name: "Default",
+          icon: "📁",
           isExpanded: true,
           pages: [fallbackPage]
         };
@@ -93,7 +112,6 @@ export default function App() {
     if (isLoading) return;
 
     const activePage = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
-
     if (!activePage) return;
 
     if (!editor) {
@@ -102,20 +120,15 @@ export default function App() {
       });
       setEditor(e);
     } else {
-      // Update editor content if active page changed
       const activePageNow = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
       if (activePageNow) {
-        // Use replaceBlocks to update the editor document to the new page blocks
         try {
           editor.replaceBlocks(editor.document, activePageNow.blocks || []);
         } catch (err) {
-          // Fallback: if API differs, ignore and log (keeps app from crashing)
           console.warn("Failed to replace blocks on editor (API mismatch?):", err);
         }
       }
     }
-    // we intentionally depend on activePageId and isLoading.
-    // editor (setter) is handled inside to avoid recreation loops.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePageId, isLoading]);
 
@@ -147,11 +160,14 @@ export default function App() {
     }
   }, [categories, isLoading]);
 
-  // Close context menu on outside click
+  // Close context menu & icon picker on outside click
   useEffect(() => {
-    const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
-    window.addEventListener("click", closeMenu);
-    return () => window.removeEventListener("click", closeMenu);
+    const closeAll = () => {
+      setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
+      setIconPicker(prev => ({ ...prev, visible: false, forType: null, id: null }));
+    };
+    window.addEventListener("click", closeAll);
+    return () => window.removeEventListener("click", closeAll);
   }, []);
 
   // -------- ACTIONS ----------
@@ -160,7 +176,8 @@ export default function App() {
       id: uuid(),
       title: "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
-      categoryId
+      categoryId,
+      icon: "📄"
     };
 
     setCategories(prev =>
@@ -199,7 +216,6 @@ export default function App() {
     );
 
     if (activePageId === pageId) {
-      // pick next available page (from updated state)
       setCategories(prev => {
         const remainingPages = prev.flatMap(cat => cat.pages || []).filter(p => p && p.id !== pageId);
         const newActivePage = remainingPages.length > 0 ? remainingPages[0] : undefined;
@@ -213,20 +229,21 @@ export default function App() {
     const newCategory: Category = {
       id: uuid(),
       name: opts?.name || "New Category",
+      icon: "📁",
       isExpanded: true,
       pages: []
     };
 
     setCategories(prev => {
       const next = [...(prev || []), newCategory];
-      // if no pages exist in the whole notebook, create a starter page for this category and make it active
       const totalPages = next.reduce((s, c) => s + (c.pages?.length || 0), 0);
       if (totalPages === 0) {
         const starter: Page = {
           id: uuid(),
           title: "Untitled",
           blocks: [{ type: "paragraph", content: "" }],
-          categoryId: newCategory.id
+          categoryId: newCategory.id,
+          icon: "📄"
         };
         newCategory.pages = [starter];
         setActivePageId(starter.id);
@@ -271,7 +288,6 @@ export default function App() {
   };
 
   const deleteCategory = (catId: string) => {
-    // create the new categories array synchronously then update active page safely
     setCategories(prev => {
       if ((prev || []).length <= 1) {
         alert("Cannot delete the last category");
@@ -280,16 +296,46 @@ export default function App() {
 
       const newCats = (prev || []).filter(c => c.id !== catId);
 
-      // if the active page belonged to that category, switch to another
       const stillExists = newCats.flatMap(c => c.pages || []).find(p => p.id === activePageId);
       if (!stillExists) {
         const fallback = newCats[0]?.pages?.[0];
         if (fallback) setActivePageId(fallback.id);
-        else setActivePageId(""); // no pages left
+        else setActivePageId("");
       }
 
       return newCats;
     });
+  };
+
+  // Open inline icon picker under the clicked icon (Notion-style)
+  const openIconPicker = (event: React.MouseEvent, forType: "category" | "page", id: string) => {
+    event.stopPropagation();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    // place picker under the icon (Notion-like)
+    setIconPicker({
+      visible: true,
+      x: rect.left,
+      y: rect.bottom + 6,
+      forType,
+      id
+    });
+    // prevent contextMenu from interfering
+    setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
+  };
+
+  const onEmojiSelect = (emoji: any) => {
+    const native = emoji.native || (emoji.colons ? emoji.colons : undefined) || emoji.id;
+    if (!native) return;
+    if (iconPicker.forType === "category" && iconPicker.id) {
+      setCategories(prev => (prev || []).map(cat => cat.id === iconPicker.id ? { ...cat, icon: native } : cat));
+    }
+    if (iconPicker.forType === "page" && iconPicker.id) {
+      setCategories(prev => (prev || []).map(cat => ({
+        ...cat,
+        pages: (cat.pages || []).map(p => p.id === iconPicker.id ? { ...p, icon: native } : p)
+      })));
+    }
+    setIconPicker({ visible: false, x: 0, y: 0, forType: null, id: null });
   };
 
   if (isLoading) return <div className="loading-screen"><h2>Loading...</h2></div>;
@@ -301,7 +347,6 @@ export default function App() {
       <aside
         className="sidebar"
         onContextMenu={(e) => {
-          // Prevent opening the generic sidebar menu when right-clicking a category header or page item
           const target = e.target as HTMLElement;
           if (target.closest(".category") || target.closest(".category-header") || target.closest(".page-item")) {
             return;
@@ -349,31 +394,26 @@ export default function App() {
                   });
                 }}
               >
+                <button
+                  className="icon-button category-icon"
+                  onClick={(ev) => openIconPicker(ev, "category", category.id)}
+                  title="Change category icon"
+                >
+                  <span className="icon-text">{category.icon || "📁"}</span>
+                </button>
+
                 <input
                   type="text"
                   value={category?.name || ""}
                   onChange={(e) => updateCategoryName(category?.id, e.target.value)}
                   className="category-name-input"
                 />
+
                 <button
                   className="category-toggle"
                   onClick={() => toggleCategoryExpanded(category?.id)}
                 >
                   {category?.isExpanded ? "▼" : "▶"}
-                </button>
-                <button
-                  onClick={() => createPage(category?.id)}
-                  className="add-page-btn"
-                  title="Add page to category"
-                >
-                  +
-                </button>
-                <button
-                  className="delete-cat-btn"
-                  onClick={() => deleteCategory(category.id)}
-                  title="Delete category"
-                >
-                  ×
                 </button>
               </div>
 
@@ -387,6 +427,14 @@ export default function App() {
                         setActivePageId(page?.id);
                       }}
                     >
+                      <button
+                        className="icon-button page-icon"
+                        onClick={(ev) => { ev.stopPropagation(); openIconPicker(ev, "page", page.id); }}
+                        title="Change page icon"
+                      >
+                        <span className="icon-text">{page.icon || "📄"}</span>
+                      </button>
+
                       <span className="page-title">{page?.title || "Untitled"}</span>
                       <button
                         onClick={(e) => {
@@ -468,17 +516,47 @@ export default function App() {
           </div>
         )}
 
+        {/* Inline emoji picker (Notion-style) */}
+        {iconPicker.visible && (
+            <div
+            className="icon-picker-wrapper"
+            style={{
+              position: "fixed",
+              top: `${iconPicker.y}px`,
+              left: `${iconPicker.x}px`,
+              zIndex: 10000
+            }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+            <Picker
+            data={data}
+            theme="dark"
+            onEmojiSelect={(emoji: any) => onEmojiSelect(emoji)}
+            />
+            </div>
+        )}
       </aside>
 
       <main className="main-content">
         {activePage && editor ? (
           <>
-            <input
-              className="title-input"
-              value={activePage.title || ""}
-              onChange={e => updatePageTitle(e.target.value)}
-              placeholder="Page title..."
-            />
+            <div className="page-header">
+              <button
+                className="icon-button header-icon"
+                onClick={(ev) => openIconPicker(ev, "page", activePage.id)}
+                title="Change page icon"
+              >
+                <span className="icon-text">{activePage.icon || "📄"}</span>
+              </button>
+
+              <input
+                className="title-input"
+                value={activePage.title || ""}
+                onChange={e => updatePageTitle(e.target.value)}
+                placeholder="Page title..."
+              />
+            </div>
+
             <div className="editor-container">
               <BlockNoteView editor={editor} />
             </div>

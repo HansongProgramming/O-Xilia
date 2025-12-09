@@ -140,7 +140,7 @@ body {
 }
 
 .category-header input{
-  color : #7a7d83;
+  color : #9299A8;
 }
 
 .category-header:hover input{
@@ -176,7 +176,7 @@ body {
 
 .category-name-input:focus {
   outline: none;
-  background-color: #4C566A;
+  background-color: #ffffff;
 }
 
 .category-actions {
@@ -226,7 +226,7 @@ body {
   font-size: 0.8rem;
   color: #9299A8;
   transition: all 0.2s ease;
-  margin-left: 1.5rem;
+  margin-left: 0.2rem;
 }
 
 .header-dropdown {
@@ -341,7 +341,6 @@ body {
   font-size: 1.8rem;
   padding: 0.8rem 1rem;
   border: none;
-  border-bottom: 2px solid #434C5E;
   margin-bottom: 1.5rem;
   background-color: transparent;
   color: #ECEFF4;
@@ -442,7 +441,6 @@ body {
   padding: 0.6rem 0.4rem;
   background: transparent;
   border: none;
-  border-bottom: 2px solid #434C5E;
   color: #ECEFF4;
   margin-bottom: 1.3rem;
 }
@@ -450,4 +448,109 @@ body {
 .title-input:focus {
   outline: none;
   border-color: #5E81AC;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.icon-button:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.icon-text {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+.page-header .icon-text{
+  font-size: 2.5rem;
+  margin-bottom: 1.05rem;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.category-name-input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  flex: 1;
+  padding: 4px 6px;
+  outline: none;
+}
+
+/* Page item layout */
+.page-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.page-item:hover { background: rgba(255,255,255,0.02); }
+
+.page-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Editor header with icon */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+/* emoji-mart picker's wrapper */
+.icon-picker-wrapper {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* context menu minimal tweaks */
+.context-menu {
+  background: #2E3440;
+  border: 1px solid #3B4252;
+  border-radius: 6px;
+  padding: 6px 0;
+  width: 180px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  animation: pop 0.08s ease-out;
+}
+
+.context-menu button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  color: #eceff4;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.context-menu button:hover { background: #434C5E; }
+
+@keyframes pop {
+  from { transform: scale(0.98); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
