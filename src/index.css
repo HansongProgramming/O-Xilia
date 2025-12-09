@@ -134,9 +134,8 @@ body {
 .category-header {
   display: flex;
   align-items: center;
-  padding: 0.4rem 0.5rem;
+  padding: 0.1rem 0.5rem;
   border-radius: 8px;
-  margin-bottom: 0.3rem;
   transition: background-color 0.2s ease;
 }
 
@@ -151,7 +150,7 @@ body {
 .category-toggle {
   background: none;
   border: none;
-  color: #727780;
+  color: #9299A8;
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   margin-right: 0.5rem;
@@ -167,8 +166,8 @@ body {
   flex: 1;
   background: transparent;
   border: none;
-  color: #ECEFF4;
-  font-size: 0.95rem;
+  color: #9299A8;
+  font-size: 0.9rem;
   font-weight: 500;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
@@ -224,11 +223,69 @@ body {
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 0.2rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #9299A8;
   transition: all 0.2s ease;
   margin-left: 1.5rem;
 }
+
+.header-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--bg-sidebar, #2b2d31);
+  border: 1px solid #444;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  padding: .25rem 0;
+  z-index: 10;
+}
+.header-dropdown button {
+  background: none;
+  border: none;
+  color: #dcddde;
+  padding: .4rem .8rem;
+  text-align: left;
+  cursor: pointer;
+}
+.header-dropdown button:hover {
+  background: #404249;
+}
+.sidebar-header { position: relative; }
+
+.context-menu {
+  position: fixed;
+  background: #2E3440;
+  border: 1px solid #3B4252;
+  border-radius: 6px;
+  padding: 6px 0;
+  z-index: 9999;
+  width: 160px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  animation: pop 0.08s ease-out;
+}
+
+.context-menu button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  color: #eceff4;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: #434C5E;
+}
+
+@keyframes pop {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
 
 .page-item:hover {
   background-color: #4C566A;
@@ -371,6 +428,7 @@ body {
   
   .category-header {
     padding: 0.2rem 0.2rem;
+    font-size: 2rem;
   }
   
   .page-item {

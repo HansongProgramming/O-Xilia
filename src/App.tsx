@@ -1,4 +1,4 @@
-// App.tsx - Fixed to work with JSON saving
+// App.tsx - Fixed to work with JSON saving + improved context menus (sidebar & category)
 import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -10,11 +10,27 @@ import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
 
+type ContextMenuState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  type: "category" | "sidebar" | null;
+  categoryId: string | null;
+};
+
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePageId, setActivePageId] = useState<string>("");
   const [editor, setEditor] = useState<BlockNoteEditor | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    type: null,
+    categoryId: null
+  });
 
   // -------- LOAD DATA ----------
   useEffect(() => {
@@ -24,10 +40,10 @@ export default function App() {
         if (data && data.length > 0) {
           setCategories(data);
 
-          // Set initial active page
-          const firstCategoryWithPages = data.find(cat => cat.pages && cat.pages.length > 0);
-          if (firstCategoryWithPages && firstCategoryWithPages.pages && firstCategoryWithPages.pages.length > 0) {
-            setActivePageId(firstCategoryWithPages.pages[0].id);
+          // Set initial active page if not set
+          const firstCategoryWithPages = data.find(cat => (cat.pages || []).length > 0);
+          if (firstCategoryWithPages) {
+            setActivePageId(prev => prev || firstCategoryWithPages.pages![0].id);
           }
         } else {
           // Create default category and page
@@ -76,9 +92,7 @@ export default function App() {
   useEffect(() => {
     if (isLoading) return;
 
-    const activePage = categories
-      .flatMap(cat => cat.pages || [])
-      .find(page => page && page.id === activePageId);
+    const activePage = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
 
     if (!activePage) return;
 
@@ -88,14 +102,21 @@ export default function App() {
       });
       setEditor(e);
     } else {
-      const activePageNow = categories
-        .flatMap(cat => cat.pages || [])
-        .find(page => page && page.id === activePageId);
-
+      // Update editor content if active page changed
+      const activePageNow = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
       if (activePageNow) {
-        editor.replaceBlocks(editor.document, activePageNow.blocks || []);
+        // Use replaceBlocks to update the editor document to the new page blocks
+        try {
+          editor.replaceBlocks(editor.document, activePageNow.blocks || []);
+        } catch (err) {
+          // Fallback: if API differs, ignore and log (keeps app from crashing)
+          console.warn("Failed to replace blocks on editor (API mismatch?):", err);
+        }
       }
     }
+    // we intentionally depend on activePageId and isLoading.
+    // editor (setter) is handled inside to avoid recreation loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePageId, isLoading]);
 
   // -------- HANDLE BLOCKNOTE CHANGES ----------
@@ -109,9 +130,7 @@ export default function App() {
         prev.map(category => ({
           ...category,
           pages: (category.pages || []).map(page =>
-            page && page.id === activePageId
-              ? { ...page, blocks }
-              : page
+            page && page.id === activePageId ? { ...page, blocks } : page
           )
         }))
       );
@@ -127,6 +146,13 @@ export default function App() {
       return () => clearTimeout(timeout);
     }
   }, [categories, isLoading]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, []);
 
   // -------- ACTIONS ----------
   const createPage = (categoryId: string) => {
@@ -173,21 +199,40 @@ export default function App() {
     );
 
     if (activePageId === pageId) {
-      const remainingPages = categories.flatMap(cat => cat.pages || []).filter(p => p && p.id !== pageId);
-      const newActivePage = remainingPages.length > 0 ? remainingPages[0] : null;
-      setActivePageId(newActivePage?.id || "");
+      // pick next available page (from updated state)
+      setCategories(prev => {
+        const remainingPages = prev.flatMap(cat => cat.pages || []).filter(p => p && p.id !== pageId);
+        const newActivePage = remainingPages.length > 0 ? remainingPages[0] : undefined;
+        if (newActivePage) setActivePageId(newActivePage.id);
+        return prev;
+      });
     }
   };
 
-  const createCategory = () => {
+  const createCategory = (opts?: { name?: string; focus?: boolean }) => {
     const newCategory: Category = {
       id: uuid(),
-      name: "New Category",
+      name: opts?.name || "New Category",
       isExpanded: true,
       pages: []
     };
 
-    setCategories(prev => [...(prev || []), newCategory]);
+    setCategories(prev => {
+      const next = [...(prev || []), newCategory];
+      // if no pages exist in the whole notebook, create a starter page for this category and make it active
+      const totalPages = next.reduce((s, c) => s + (c.pages?.length || 0), 0);
+      if (totalPages === 0) {
+        const starter: Page = {
+          id: uuid(),
+          title: "Untitled",
+          blocks: [{ type: "paragraph", content: "" }],
+          categoryId: newCategory.id
+        };
+        newCategory.pages = [starter];
+        setActivePageId(starter.id);
+      }
+      return next;
+    });
   };
 
   const updateCategoryName = (categoryId: string, name: string) => {
@@ -206,13 +251,17 @@ export default function App() {
     );
   };
 
-  const setCategoryFolder = async (categoryId: string) => {
+  // Choose folder for a specific category. If no categoryId provided, we'll try to use active page's category
+  const setCategoryFolder = async (categoryId?: string) => {
     try {
+      const targetCategoryId = categoryId || categories.find(c => (c.pages || []).some(p => p.id === activePageId))?.id;
+      if (!targetCategoryId) return alert("No category selected to choose a folder for.");
+
       const folderPath = await chooseFolder();
       if (folderPath) {
         setCategories(prev =>
           (prev || []).map(cat =>
-            cat && cat.id === categoryId ? { ...cat, folderPath } : cat
+            cat && cat.id === targetCategoryId ? { ...cat, folderPath } : cat
           )
         );
       }
@@ -221,25 +270,85 @@ export default function App() {
     }
   };
 
+  const deleteCategory = (catId: string) => {
+    // create the new categories array synchronously then update active page safely
+    setCategories(prev => {
+      if ((prev || []).length <= 1) {
+        alert("Cannot delete the last category");
+        return prev;
+      }
+
+      const newCats = (prev || []).filter(c => c.id !== catId);
+
+      // if the active page belonged to that category, switch to another
+      const stillExists = newCats.flatMap(c => c.pages || []).find(p => p.id === activePageId);
+      if (!stillExists) {
+        const fallback = newCats[0]?.pages?.[0];
+        if (fallback) setActivePageId(fallback.id);
+        else setActivePageId(""); // no pages left
+      }
+
+      return newCats;
+    });
+  };
+
   if (isLoading) return <div className="loading-screen"><h2>Loading...</h2></div>;
 
-  const activePage = categories
-    .flatMap(cat => cat.pages || [])
-    .find(page => page && page.id === activePageId);
+  const activePage = categories.flatMap(cat => cat.pages || []).find(page => page && page.id === activePageId);
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <aside
+        className="sidebar"
+        onContextMenu={(e) => {
+          // Prevent opening the generic sidebar menu when right-clicking a category header or page item
+          const target = e.target as HTMLElement;
+          if (target.closest(".category") || target.closest(".category-header") || target.closest(".page-item")) {
+            return;
+          }
+          e.preventDefault();
+          setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            type: "sidebar",
+            categoryId: null
+          });
+        }}
+      >
         <div className="sidebar-header">
-          <h2>O-Xilia</h2>
-          <button className="create-category-btn" onClick={createCategory}>+ New Category</button>
-          <button onClick={() => setCategoryFolder("global")}>Choose Folder</button>
+          <h2 onClick={() => setShowHeaderMenu(v => !v)} style={{ cursor: 'pointer' }}>
+            O-Xilia {showHeaderMenu ? '▲' : '▼'}
+          </h2>
+
+          {showHeaderMenu && (
+            <div className="header-dropdown">
+              <button onClick={() => { createCategory(); setShowHeaderMenu(false); }}>
+                Add Category
+              </button>
+              <button onClick={() => { setShowHeaderMenu(false); setCategoryFolder(); }}>
+                Choose Folder for Active Category
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="categories-list">
           {categories && categories.map(category => (
             <div key={category?.id} className="category">
-              <div className="category-header">
+              <div
+                className="category-header"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    type: "category",
+                    categoryId: category.id
+                  });
+                }}
+              >
                 <input
                   type="text"
                   value={category?.name || ""}
@@ -258,6 +367,13 @@ export default function App() {
                   title="Add page to category"
                 >
                   +
+                </button>
+                <button
+                  className="delete-cat-btn"
+                  onClick={() => deleteCategory(category.id)}
+                  title="Delete category"
+                >
+                  ×
                 </button>
               </div>
 
@@ -288,6 +404,70 @@ export default function App() {
             </div>
           ))}
         </div>
+
+        {/* Context menus */}
+        {contextMenu.visible && contextMenu.type === "category" && (
+          <div
+            className="context-menu"
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 9999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => {
+              if (contextMenu.categoryId) createPage(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ➕ Add Page
+            </button>
+
+            <button onClick={() => {
+              const newName = prompt("Rename category:");
+              if (newName && contextMenu.categoryId) updateCategoryName(contextMenu.categoryId, newName);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ✏️ Rename
+            </button>
+
+            <button onClick={() => {
+              if (contextMenu.categoryId) deleteCategory(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ❌ Delete
+            </button>
+
+            <button onClick={() => {
+              if (contextMenu.categoryId) setCategoryFolder(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              📁 Choose Folder...
+            </button>
+          </div>
+        )}
+
+        {contextMenu.visible && contextMenu.type === "sidebar" && (
+          <div
+            className="context-menu"
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 9999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => {
+              createCategory();
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ➕ New Category
+            </button>
+          </div>
+        )}
+
       </aside>
 
       <main className="main-content">
