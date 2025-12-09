@@ -1,5 +1,4 @@
-// App.tsx - Notion-style icons + inline emoji picker for categories & pages
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor } from "@blocknote/core";
@@ -31,44 +30,41 @@ type IconPickerState = {
 export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePageId, setActivePageId] = useState<string>("");
-  const [editor, setEditor] = useState<BlockNoteEditor | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    type: null,
-    categoryId: null
-  });
-  const [iconPicker, setIconPicker] = useState<IconPickerState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    forType: null,
-    id: null
-  });
+  const editorRef = useRef<BlockNoteEditor | null>(null);
+  const lastLoadedBlocksRef = useRef<any[] | null>(null);
+  const isMountedRef = useRef(false);
 
-  // -------- LOAD DATA ----------
+  const [isLoading, setIsLoading] = useState(true);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+  const [iconPicker, setIconPicker] = useState<IconPickerState>({ visible: false, x: 0, y: 0, forType: null, id: null });
+
+  // Debounce / timer refs
+  const saveTimerRef = useRef<number | null>(null);
+  const editorChangeTimerRef = useRef<number | null>(null);
+
+  // -------- LOAD DATA (once) ----------
   useEffect(() => {
+    let cancelled = false;
+
     async function init() {
       try {
-        const data = await loadDB();
-        if (data && data.length > 0) {
-          setCategories(data);
+        const dataDB = await loadDB();
+        if (cancelled) return;
 
-          const firstCategoryWithPages = data.find(cat => (cat.pages || []).length > 0);
+        if (dataDB && dataDB.length > 0) {
+          setCategories(dataDB);
+
+          const firstCategoryWithPages = dataDB.find((cat) => (cat.pages || []).length > 0);
           if (firstCategoryWithPages) {
-            setActivePageId(prev => prev || firstCategoryWithPages.pages![0].id);
+            setActivePageId((prev) => prev || firstCategoryWithPages.pages![0].id);
           }
         } else {
-          // default
           const defaultPage: Page = {
             id: uuid(),
             title: "Welcome to O-Xilia",
             blocks: [{ type: "paragraph", content: "Start your first note..." }],
             categoryId: "default-category",
-            icon: "📄"
+            icon: "📄",
           };
 
           const defaultCategory: Category = {
@@ -76,7 +72,7 @@ export default function App() {
             name: "Default",
             icon: "📁",
             isExpanded: true,
-            pages: [defaultPage]
+            pages: [defaultPage],
           };
 
           setCategories([defaultCategory]);
@@ -89,14 +85,14 @@ export default function App() {
           title: "Untitled",
           blocks: [{ type: "paragraph", content: "" }],
           categoryId: "fallback-category",
-          icon: "📄"
+          icon: "📄",
         };
         const fallbackCategory: Category = {
           id: "fallback-category",
           name: "Default",
           icon: "📁",
           isExpanded: true,
-          pages: [fallbackPage]
+          pages: [fallbackPage],
         };
         setCategories([fallbackCategory]);
         setActivePageId(fallbackPage.id);
@@ -104,137 +100,186 @@ export default function App() {
         setIsLoading(false);
       }
     }
+
     init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // -------- CREATE EDITOR ----------
+  const allPages = useMemo(() => categories.flatMap((cat) => cat.pages || []), [categories]);
+
+  const activePage = useMemo(() => allPages.find((p) => p && p.id === activePageId), [allPages, activePageId]);
+
   useEffect(() => {
     if (isLoading) return;
+    if (!editorRef.current) {
+      editorRef.current = BlockNoteEditor.create({ initialContent: activePage?.blocks || [] });
 
-    const activePage = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
-    if (!activePage) return;
-
-    if (!editor) {
-      const e = BlockNoteEditor.create({
-        initialContent: activePage.blocks || []
+      // onChange handler - debounced
+      editorRef.current.onChange(() => {
+        if (editorChangeTimerRef.current) window.clearTimeout(editorChangeTimerRef.current);
+        // debounce editor changes and then update categories (only update the modified page)
+        editorChangeTimerRef.current = window.setTimeout(() => {
+          try {
+            const blocks = editorRef.current?.document || [];
+            if (!activePage) return;
+            // update only the page that changed
+            setPageBlocks(activePage.id, blocks);
+          } catch (err) {
+            console.warn("Error syncing editor -> state:", err);
+          }
+        }, 500);
       });
-      setEditor(e);
-    } else {
-      const activePageNow = categories.flatMap(cat => cat.pages || []).find(p => p && p.id === activePageId);
-      if (activePageNow) {
+    }
+
+    if (activePage && editorRef.current) {
+      const currentDoc = editorRef.current.document || [];
+      const incoming = activePage.blocks || [];
+
+      // Quick shallow check - if lengths differ or JSON differs, replace
+      const needsReplace = currentDoc.length !== incoming.length || JSON.stringify(lastLoadedBlocksRef.current) !== JSON.stringify(incoming);
+      if (needsReplace) {
         try {
-          editor.replaceBlocks(editor.document, activePageNow.blocks || []);
+          // Keep a snapshot so future compares are meaningful
+          lastLoadedBlocksRef.current = incoming;
+          // replaceBlocks may be implementation-specific; try-catch to gracefully degrade
+          try {
+            editorRef.current.replaceBlocks(editorRef.current.document, incoming);
+          } catch (err) {
+            // Some versions of BlockNote might use a different API - fallback to re-creating editor
+            console.warn("replaceBlocks failed, recreating editor:", err);
+            editorRef.current = BlockNoteEditor.create({ initialContent: incoming });
+          }
         } catch (err) {
-          console.warn("Failed to replace blocks on editor (API mismatch?):", err);
+          console.warn("Failed to load page into editor:", err);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePageId, isLoading]);
 
-  // -------- HANDLE BLOCKNOTE CHANGES ----------
-  useEffect(() => {
-    if (!editor || isLoading) return;
+  }, [isLoading, activePageId]);
 
-    const unsub = editor.onChange(() => {
-      const blocks = editor.document;
+  const setPageBlocks = useCallback((pageId: string, blocks: any[]) => {
+    setCategories((prev) => {
+      const catIndex = prev.findIndex((c) => (c.pages || []).some((p) => p.id === pageId));
+      if (catIndex === -1) return prev;
 
-      setCategories(prev =>
-        prev.map(category => ({
-          ...category,
-          pages: (category.pages || []).map(page =>
-            page && page.id === activePageId ? { ...page, blocks } : page
-          )
-        }))
-      );
+      const pageIndex = (prev[catIndex].pages || []).findIndex((p) => p.id === pageId);
+      if (pageIndex === -1) return prev;
+
+      const existing = prev[catIndex].pages![pageIndex].blocks || [];
+      if (JSON.stringify(existing) === JSON.stringify(blocks)) return prev;
+
+      const newCats = prev.slice();
+      const catCopy = { ...newCats[catIndex] };
+      const pagesCopy = catCopy.pages ? catCopy.pages.slice() : [];
+      pagesCopy[pageIndex] = { ...pagesCopy[pageIndex], blocks };
+      catCopy.pages = pagesCopy;
+      newCats[catIndex] = catCopy;
+      return newCats;
     });
+  }, []);
 
-    return () => unsub && unsub();
-  }, [editor, activePageId, isLoading]);
-
-  // -------- AUTO-SAVE ----------
   useEffect(() => {
-    if (!isLoading && categories && categories.length > 0) {
-      const timeout = setTimeout(() => saveDB(categories), 300);
-      return () => clearTimeout(timeout);
-    }
+    if (isLoading) return;
+
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      try {
+        saveDB(categories);
+      } catch (err) {
+        console.error("Failed to save DB:", err);
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
   }, [categories, isLoading]);
 
-  // Close context menu & icon picker on outside click
   useEffect(() => {
+    if (!iconPicker.visible && !contextMenu.visible) return;
+
     const closeAll = () => {
-      setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
-      setIconPicker(prev => ({ ...prev, visible: false, forType: null, id: null }));
+      setContextMenu((prev) => ({ ...prev, visible: false, type: null, categoryId: null }));
+      setIconPicker((prev) => ({ ...prev, visible: false, forType: null, id: null }));
     };
+
     window.addEventListener("click", closeAll);
     return () => window.removeEventListener("click", closeAll);
+  }, [iconPicker.visible, contextMenu.visible]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => (isMountedRef.current = false);
   }, []);
 
   // -------- ACTIONS ----------
-  const createPage = (categoryId: string) => {
+  const createPage = useCallback((categoryId: string) => {
     const newPage: Page = {
       id: uuid(),
       title: "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
       categoryId,
-      icon: "📄"
+      icon: "📄",
     };
 
-    setCategories(prev =>
-      prev.map(cat =>
-        cat && cat.id === categoryId
-          ? { ...cat, pages: [...(cat.pages || []), newPage] }
-          : cat
-      )
-    );
+    setCategories((prev) => {
+      const index = prev.findIndex((c) => c.id === categoryId);
+      if (index === -1) return prev;
+      const newCats = prev.slice();
+      const cat = { ...newCats[index], pages: [...(newCats[index].pages || []), newPage] };
+      newCats[index] = cat;
+      return newCats;
+    });
 
     setActivePageId(newPage.id);
-  };
+  }, []);
 
-  const updatePageTitle = (title: string) => {
+  const updatePageTitle = useCallback((title: string) => {
     if (!activePageId) return;
+    setCategories((prev) => {
+      const catIndex = prev.findIndex((c) => (c.pages || []).some((p) => p.id === activePageId));
+      if (catIndex === -1) return prev;
+      const pageIndex = (prev[catIndex].pages || []).findIndex((p) => p.id === activePageId);
+      if (pageIndex === -1) return prev;
 
-    setCategories(prev =>
-      prev.map(category => ({
-        ...category,
-        pages: (category.pages || []).map(page =>
-          page && page.id === activePageId ? { ...page, title } : page
-        )
-      }))
-    );
-  };
+      const newCats = prev.slice();
+      const catCopy = { ...newCats[catIndex] };
+      const pagesCopy = catCopy.pages ? catCopy.pages.slice() : [];
+      pagesCopy[pageIndex] = { ...pagesCopy[pageIndex], title };
+      catCopy.pages = pagesCopy;
+      newCats[catIndex] = catCopy;
+      return newCats;
+    });
+  }, [activePageId]);
 
-  const deletePage = (pageId: string) => {
+  const deletePage = useCallback((pageId: string) => {
     const totalPages = categories.reduce((sum, cat) => sum + (cat.pages?.length || 0), 0);
     if (totalPages <= 1) return alert("Cannot delete the last page");
 
-    setCategories(prev =>
-      prev.map(category => ({
-        ...category,
-        pages: (category.pages || []).filter(page => page && page.id !== pageId)
-      }))
-    );
+    setCategories((prev) => {
+      const newCats = prev.map((cat) => ({ ...cat, pages: (cat.pages || []).filter((p) => p && p.id !== pageId) }));
+      return newCats;
+    });
 
     if (activePageId === pageId) {
-      setCategories(prev => {
-        const remainingPages = prev.flatMap(cat => cat.pages || []).filter(p => p && p.id !== pageId);
-        const newActivePage = remainingPages.length > 0 ? remainingPages[0] : undefined;
-        if (newActivePage) setActivePageId(newActivePage.id);
-        return prev;
-      });
+      const remaining = allPages.filter((p) => p.id !== pageId);
+      if (remaining.length > 0) setActivePageId(remaining[0].id);
+      else setActivePageId("");
     }
-  };
+  }, [categories, activePageId, allPages]);
 
-  const createCategory = (opts?: { name?: string; focus?: boolean }) => {
+  const createCategory = useCallback((opts?: { name?: string; focus?: boolean }) => {
     const newCategory: Category = {
       id: uuid(),
       name: opts?.name || "New Category",
       icon: "📁",
       isExpanded: true,
-      pages: []
+      pages: [],
     };
 
-    setCategories(prev => {
+    setCategories((prev) => {
       const next = [...(prev || []), newCategory];
       const totalPages = next.reduce((s, c) => s + (c.pages?.length || 0), 0);
       if (totalPages === 0) {
@@ -243,60 +288,65 @@ export default function App() {
           title: "Untitled",
           blocks: [{ type: "paragraph", content: "" }],
           categoryId: newCategory.id,
-          icon: "📄"
+          icon: "📄",
         };
         newCategory.pages = [starter];
         setActivePageId(starter.id);
       }
       return next;
     });
-  };
+  }, []);
 
-  const updateCategoryName = (categoryId: string, name: string) => {
-    setCategories(prev =>
-      (prev || []).map(cat =>
-        cat && cat.id === categoryId ? { ...cat, name } : cat
-      )
-    );
-  };
+  const updateCategoryName = useCallback((categoryId: string, name: string) => {
+    setCategories((prev) => {
+      const idx = prev.findIndex((c) => c.id === categoryId);
+      if (idx === -1) return prev;
+      const newCats = prev.slice();
+      newCats[idx] = { ...newCats[idx], name };
+      return newCats;
+    });
+  }, []);
 
-  const toggleCategoryExpanded = (categoryId: string) => {
-    setCategories(prev =>
-      (prev || []).map(cat =>
-        cat && cat.id === categoryId ? { ...cat, isExpanded: !cat.isExpanded } : cat
-      )
-    );
-  };
+  const toggleCategoryExpanded = useCallback((categoryId: string) => {
+    setCategories((prev) => {
+      const idx = prev.findIndex((c) => c.id === categoryId);
+      if (idx === -1) return prev;
+      const newCats = prev.slice();
+      newCats[idx] = { ...newCats[idx], isExpanded: !newCats[idx].isExpanded };
+      return newCats;
+    });
+  }, []);
 
-  // Choose folder for a specific category. If no categoryId provided, we'll try to use active page's category
-  const setCategoryFolder = async (categoryId?: string) => {
+  const setCategoryFolder = useCallback(async (categoryId?: string) => {
     try {
-      const targetCategoryId = categoryId || categories.find(c => (c.pages || []).some(p => p.id === activePageId))?.id;
+      const targetCategoryId = categoryId || categories.find((c) => (c.pages || []).some((p) => p.id === activePageId))?.id;
       if (!targetCategoryId) return alert("No category selected to choose a folder for.");
 
       const folderPath = await chooseFolder();
       if (folderPath) {
-        setCategories(prev =>
-          (prev || []).map(cat =>
-            cat && cat.id === targetCategoryId ? { ...cat, folderPath } : cat
-          )
-        );
+        setCategories((prev) => {
+          const idx = prev.findIndex((c) => c.id === targetCategoryId);
+          if (idx === -1) return prev;
+          const newCats = prev.slice();
+          newCats[idx] = { ...newCats[idx], folderPath };
+          return newCats;
+        });
       }
     } catch (error) {
       console.error("Failed to choose folder:", error);
     }
-  };
+  }, [categories, activePageId]);
 
-  const deleteCategory = (catId: string) => {
-    setCategories(prev => {
+  const deleteCategory = useCallback((catId: string) => {
+    setCategories((prev) => {
       if ((prev || []).length <= 1) {
         alert("Cannot delete the last category");
         return prev;
       }
 
-      const newCats = (prev || []).filter(c => c.id !== catId);
+      const newCats = (prev || []).filter((c) => c.id !== catId);
 
-      const stillExists = newCats.flatMap(c => c.pages || []).find(p => p.id === activePageId);
+      const stillExists = newCats.flatMap((c) => c.pages || []).find((p) => p.id === activePageId);
       if (!stillExists) {
         const fallback = newCats[0]?.pages?.[0];
         if (fallback) setActivePageId(fallback.id);
@@ -305,42 +355,34 @@ export default function App() {
 
       return newCats;
     });
-  };
+  }, [activePageId]);
 
-  // Open inline icon picker under the clicked icon (Notion-style)
-  const openIconPicker = (event: React.MouseEvent, forType: "category" | "page", id: string) => {
+  const openIconPicker = useCallback((event: React.MouseEvent, forType: "category" | "page", id: string) => {
     event.stopPropagation();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    // place picker under the icon (Notion-like)
-    setIconPicker({
-      visible: true,
-      x: rect.left,
-      y: rect.bottom + 6,
-      forType,
-      id
-    });
-    // prevent contextMenu from interfering
-    setContextMenu(prev => ({ ...prev, visible: false, type: null, categoryId: null }));
-  };
+    setIconPicker({ visible: true, x: rect.left, y: rect.bottom + 6, forType, id });
+    setContextMenu((prev) => ({ ...prev, visible: false, type: null, categoryId: null }));
+  }, []);
 
-  const onEmojiSelect = (emoji: any) => {
+  const onEmojiSelect = useCallback((emoji: any) => {
     const native = emoji.native || (emoji.colons ? emoji.colons : undefined) || emoji.id;
     if (!native) return;
     if (iconPicker.forType === "category" && iconPicker.id) {
-      setCategories(prev => (prev || []).map(cat => cat.id === iconPicker.id ? { ...cat, icon: native } : cat));
+      setCategories((prev) => {
+        const idx = prev.findIndex((c) => c.id === iconPicker.id);
+        if (idx === -1) return prev;
+        const newCats = prev.slice();
+        newCats[idx] = { ...newCats[idx], icon: native };
+        return newCats;
+      });
     }
     if (iconPicker.forType === "page" && iconPicker.id) {
-      setCategories(prev => (prev || []).map(cat => ({
-        ...cat,
-        pages: (cat.pages || []).map(p => p.id === iconPicker.id ? { ...p, icon: native } : p)
-      })));
+      setCategories((prev) => prev.map((cat) => ({ ...cat, pages: (cat.pages || []).map((p) => p.id === iconPicker.id ? { ...p, icon: native } : p) })));
     }
     setIconPicker({ visible: false, x: 0, y: 0, forType: null, id: null });
-  };
+  }, [iconPicker.forType, iconPicker.id]);
 
   if (isLoading) return <div className="loading-screen"><h2>Loading...</h2></div>;
-
-  const activePage = categories.flatMap(cat => cat.pages || []).find(page => page && page.id === activePageId);
 
   return (
     <div className="app">
@@ -352,34 +394,22 @@ export default function App() {
             return;
           }
           e.preventDefault();
-          setContextMenu({
-            visible: true,
-            x: e.clientX,
-            y: e.clientY,
-            type: "sidebar",
-            categoryId: null
-          });
+          setContextMenu({ visible: true, x: e.clientX, y: e.clientY, type: "sidebar", categoryId: null });
         }}
       >
         <div className="sidebar-header">
-          <img src="./assets/OxiliaLogo.svg" alt="" className="Logo"/>
+          <img src="./assets/OxiliaLogo.svg" alt="" className="Logo" />
           O-Xilia
         </div>
 
         <div className="categories-list">
-          {categories && categories.map(category => (
+          {categories && categories.map((category) => (
             <div key={category?.id} className="category">
               <div
                 className="category-header"
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  setContextMenu({
-                    visible: true,
-                    x: e.clientX,
-                    y: e.clientY,
-                    type: "category",
-                    categoryId: category.id
-                  });
+                  setContextMenu({ visible: true, x: e.clientX, y: e.clientY, type: "category", categoryId: category.id });
                 }}
               >
                 <button
@@ -407,13 +437,11 @@ export default function App() {
 
               {category?.isExpanded && (
                 <div className="pages-list">
-                  {category?.pages && category.pages.map(page => (
+                  {category?.pages && category.pages.map((page) => (
                     <div
                       key={page?.id}
                       className={`page-item ${page?.id === activePageId ? 'active' : ''}`}
-                      onClick={() => {
-                        setActivePageId(page?.id);
-                      }}
+                      onClick={() => { setActivePageId(page?.id); }}
                     >
                       <button
                         className="icon-button page-icon"
@@ -425,10 +453,7 @@ export default function App() {
 
                       <span className="page-title">{page?.title || "Untitled"}</span>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deletePage(page?.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); deletePage(page?.id); }}
                         className="delete-page-btn"
                       >
                         ×
@@ -445,115 +470,51 @@ export default function App() {
         {contextMenu.visible && contextMenu.type === "category" && (
           <div
             className="context-menu"
-            style={{
-              position: "fixed",
-              top: contextMenu.y,
-              left: contextMenu.x,
-              zIndex: 9999
-            }}
+            style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={() => {
-              if (contextMenu.categoryId) createPage(contextMenu.categoryId);
-              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
-            }}>
-              ➕ Add Page
-            </button>
-
+            <button onClick={() => { if (contextMenu.categoryId) createPage(contextMenu.categoryId); setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null }); }}>➕ Add Page</button>
             <button onClick={() => {
               const newName = prompt("Rename category:");
               if (newName && contextMenu.categoryId) updateCategoryName(contextMenu.categoryId, newName);
               setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
-            }}>
-              ✏️ Rename
-            </button>
-
-            <button onClick={() => {
-              if (contextMenu.categoryId) deleteCategory(contextMenu.categoryId);
-              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
-            }}>
-              ❌ Delete
-            </button>
-
-            <button onClick={() => {
-              if (contextMenu.categoryId) setCategoryFolder(contextMenu.categoryId);
-              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
-            }}>
-              📁 Choose Folder...
-            </button>
+            }}>✏️ Rename</button>
+            <button onClick={() => { if (contextMenu.categoryId) deleteCategory(contextMenu.categoryId); setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null }); }}>❌ Delete</button>
+            <button onClick={() => { if (contextMenu.categoryId) setCategoryFolder(contextMenu.categoryId); setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null }); }}>📁 Choose Folder...</button>
           </div>
         )}
 
         {contextMenu.visible && contextMenu.type === "sidebar" && (
-          <div
-            className="context-menu"
-            style={{
-              position: "fixed",
-              top: contextMenu.y,
-              left: contextMenu.x,
-              zIndex: 9999
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={() => {
-              createCategory();
-              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
-            }}>
-              ➕ New Category
-            </button>
+          <div className="context-menu" style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => { createCategory(); setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null }); }}>➕ New Category</button>
           </div>
         )}
 
-        {/* Inline emoji picker (Notion-style) */}
+        {/* Inline emoji picker (Notion-style) - only render when visible */}
         {iconPicker.visible && (
-            <div
-            className="icon-picker-wrapper"
-            style={{
-              position: "fixed",
-              top: `${iconPicker.y}px`,
-              left: `${iconPicker.x}px`,
-              zIndex: 10000
-            }}
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-            >
-            <Picker
-            data={data}
-            theme="dark"
-            onEmojiSelect={(emoji: any) => onEmojiSelect(emoji)}
-            />
-            </div>
+          <div className="icon-picker-wrapper" style={{ position: "fixed", top: `${iconPicker.y}px`, left: `${iconPicker.x}px`, zIndex: 10000 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <Picker data={data} theme="dark" onEmojiSelect={(emoji: any) => onEmojiSelect(emoji)} />
+          </div>
         )}
       </aside>
 
       <main className="main-content">
-        {activePage && editor ? (
+        {activePage && editorRef.current ? (
           <>
             <div className="page-header">
-              <button
-                className="icon-button header-icon"
-                onClick={(ev) => openIconPicker(ev, "page", activePage.id)}
-                title="Change page icon"
-              >
+              <button className="icon-button header-icon" onClick={(ev) => openIconPicker(ev, "page", activePage.id)} title="Change page icon">
                 <span className="icon-text">{activePage.icon || "📄"}</span>
               </button>
 
-              <input
-                className="title-input"
-                value={activePage.title || ""}
-                onChange={e => updatePageTitle(e.target.value)}
-                placeholder="Page title..."
-              />
+              <input className="title-input" value={activePage.title || ""} onChange={e => updatePageTitle(e.target.value)} placeholder="Page title..." />
             </div>
 
             <div className="editor-container">
-              <BlockNoteView editor={editor} />
+              <BlockNoteView editor={editorRef.current} />
             </div>
           </>
         ) : (
-          <div className="no-page-selected">
-            <h3>No page selected</h3>
-            <p>Create a new page or select an existing one to get started</p>
-          </div>
+          <div className="no-page-selected"><h3>No page selected</h3><p>Create a new page or select an existing one to get started</p></div>
         )}
       </main>
     </div>
