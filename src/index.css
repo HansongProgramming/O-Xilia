@@ -75,8 +75,8 @@ body {
 }
 
 .Logo {
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
 }
 
 .sidebar {
@@ -93,11 +93,11 @@ body {
 
 .sidebar-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+  margin-bottom: 5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #434C5E;
+  border-bottom: 2px solid #686E7C;
 }
 
 .sidebar-header h2 {
@@ -485,6 +485,8 @@ body {
   align-items: center;;
   border-bottom: 2px solid #9299A8;
   margin-bottom: 2rem;
+  margin-top: 5rem;
+  margin-left:1rem;
 }
 
 .icon-picker-wrapper {
