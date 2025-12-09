@@ -362,20 +362,8 @@ export default function App() {
         }}
       >
         <div className="sidebar-header">
-          <h2 onClick={() => setShowHeaderMenu(v => !v)} style={{ cursor: 'pointer' }}>
-            O-Xilia {showHeaderMenu ? '▲' : '▼'}
-          </h2>
-
-          {showHeaderMenu && (
-            <div className="header-dropdown">
-              <button onClick={() => { createCategory(); setShowHeaderMenu(false); }}>
-                Add Category
-              </button>
-              <button onClick={() => { setShowHeaderMenu(false); setCategoryFolder(); }}>
-                Choose Folder for Active Category
-              </button>
-            </div>
-          )}
+          <img src="./assets/OxiliaLogo.svg" alt="" className="Logo"/>
+          O-Xilia
         </div>
 
         <div className="categories-list">

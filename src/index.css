@@ -1,9 +1,10 @@
-/* Nordic Theme Adjustments for Category System */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 body {
@@ -13,7 +14,6 @@ body {
   overflow: hidden;
 }
 
-/* Nordic (Obsidian) theme overrides for BlockNote */
 .bn-editor {
   --bn-colors-editor-text: #D8DEE9;
   --bn-colors-editor-background: #2E3440;
@@ -37,7 +37,6 @@ body {
   --bn-colors-border: #434C5E;
   --bn-colors-side-menu: #4C566A;
 
-  /* Highlight palette → Nordic pastels */
   --bn-colors-highlights-gray-text: #616E88;
   --bn-colors-highlights-gray-background: #3B4252;
 
@@ -65,19 +64,21 @@ body {
   --bn-colors-highlights-pink-text: #E5B9C6;
   --bn-colors-highlights-pink-background: #472E3A;
 
-  /* Typography & radius */
   --bn-font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
                     "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --bn-border-radius: 4px;
 }
 
-/* Layout */
 .app {
   display: flex;
   height: 100vh;
 }
 
-/* Sidebar with Nordic theme */
+.Logo {
+  width: 32px;
+  height: 32px;
+}
+
 .sidebar {
   width: 360px;
   background-color: #3B4252;
@@ -121,7 +122,6 @@ body {
   background-color: #81A1C1;
 }
 
-/* Categories List */
 .categories-list {
   flex-grow: 1;
   overflow-y: auto;
@@ -134,7 +134,7 @@ body {
 .category-header {
   display: flex;
   align-items: center;
-  padding: 0.1rem 0.5rem;
+  padding: 0.1rem;
   border-radius: 8px;
   transition: background-color 0.2s ease;
 }
@@ -167,7 +167,7 @@ body {
   background: transparent;
   border: none;
   color: #9299A8;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
@@ -209,12 +209,6 @@ body {
   color: #A3BE8C;
 }
 
-/* Pages List within Categories */
-.pages-list {
-  margin-left: 1.5rem;
-  margin-top: 0.3rem;
-}
-
 .page-item {
   display: flex;
   align-items: center;
@@ -223,10 +217,10 @@ body {
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 0.2rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #9299A8;
   transition: all 0.2s ease;
-  margin-left: 0.2rem;
+  margin-left: 0.5rem;
 }
 
 .header-dropdown {
@@ -286,7 +280,6 @@ body {
   to   { transform: scale(1); opacity: 1; }
 }
 
-
 .page-item:hover {
   background-color: #4C566A;
   color: #ECEFF4;
@@ -326,7 +319,6 @@ body {
   color: #ECEFF4;
 }
 
-/* Main Content Area */
 .main-content {
   flex-grow: 1;
   display: flex;
@@ -336,24 +328,12 @@ body {
   overflow: hidden;
 }
 
-/* Page Title Input */
-.page-title-input {
-  font-size: 1.8rem;
-  padding: 0.8rem 1rem;
-  border: none;
-  margin-bottom: 1.5rem;
-  background-color: transparent;
-  color: #ECEFF4;
-  font-weight: 600;
-  transition: border-color 0.2s ease;
-}
 
 .page-title-input:focus {
   outline: none;
   border-color: #5E81AC;
 }
 
-/* Editor Container */
 .editor-container {
   flex-grow: 1;
   background-color: #2E3440;
@@ -362,7 +342,6 @@ body {
   padding: 0;
 }
 
-/* No Page Selected State */
 .no-page-selected {
   display: flex;
   flex-direction: column;
@@ -384,7 +363,6 @@ body {
   font-size: 0.9rem;
 }
 
-/* Loading Screen */
 .loading-screen {
   display: flex;
   align-items: center;
@@ -400,7 +378,6 @@ body {
   color: #ECEFF4;
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -426,7 +403,6 @@ body {
   }
   
   .category-header {
-    padding: 0.2rem 0.2rem;
     font-size: 2rem;
   }
   
@@ -442,7 +418,6 @@ body {
   background: transparent;
   border: none;
   color: #ECEFF4;
-  margin-bottom: 1.3rem;
 }
 
 .title-input:focus {
@@ -478,8 +453,6 @@ body {
 .category-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
 }
 
 .category-name-input {
@@ -491,7 +464,6 @@ body {
   outline: none;
 }
 
-/* Page item layout */
 .page-item {
   display: flex;
   align-items: center;
@@ -501,8 +473,6 @@ body {
   cursor: pointer;
 }
 
-.page-item:hover { background: rgba(255,255,255,0.02); }
-
 .page-title {
   flex: 1;
   white-space: nowrap;
@@ -510,23 +480,19 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Editor header with icon */
 .page-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  align-items: center;;
+  border-bottom: 2px solid #9299A8;
+  margin-bottom: 2rem;
 }
 
-/* emoji-mart picker's wrapper */
 .icon-picker-wrapper {
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
   border-radius: 8px;
   overflow: hidden;
 }
 
-/* context menu minimal tweaks */
 .context-menu {
   background: #2E3440;
   border: 1px solid #3B4252;
