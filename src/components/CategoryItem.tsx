@@ -62,7 +62,7 @@ export default function CategoryItem({
           className="category-toggle"
           onClick={() => toggleCategoryExpanded(category.id)}
         >
-          {category.isExpanded ? "▼" : "▶"}
+          {category.isExpanded ? <Icon icon="line-md:chevron-small-down" width="20" height="20" /> : <Icon icon="ic:round-chevron-left" width="20" height="20" />}
         </button>
       </div>
       {category.isExpanded && (

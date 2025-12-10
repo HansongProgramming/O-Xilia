@@ -100,7 +100,7 @@ body {
   gap: 0.5rem;
   margin-bottom: 5rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #686E7C;
+  border-bottom: 1px solid #686E7C;
 }
 
 .sidebar-header h2 {
@@ -159,11 +159,6 @@ body {
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   transition: background-color 0.2s ease;
-}
-
-.category-name-input:focus {
-  outline: none;
-  background-color: #ffffff;
 }
 
 .category-actions {
@@ -370,9 +365,9 @@ body {
   display: inline-block;
 }
 
-.page-header .icon-text{
-  font-size: 2.5rem;
-  margin-bottom: 1.05rem;
+.header-icon{
+  scale: 2;
+  margin-right: 1rem;
 }
 
 .category-header {
