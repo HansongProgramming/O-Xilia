@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Menu } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
-let storageFolder = app.getPath("userData"); // default
+let storageFolder = app.getPath("userData"); 
 let dbFile = path.join(storageFolder, "pages.json");
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,11 +53,14 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"), // must expose ipcRenderer
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
+
+  // Remove default menu
+  Menu.setApplicationMenu(null);
 
   if (process.env.NODE_ENV === "development") {
     win.loadURL("http://localhost:5173");
