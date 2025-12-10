@@ -1,6 +1,3 @@
-import React from "react";
-
-
 type Props = {
     context: { visible: boolean; x: number; y: number; type: "category" | "sidebar" | null; categoryId: string | null };
     onClose: () => void;

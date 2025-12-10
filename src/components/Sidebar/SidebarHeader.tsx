@@ -1,6 +1,3 @@
-import React from "react";
-
-
 export function SidebarHeader() {
     return (
         <div className="sidebar-header">
