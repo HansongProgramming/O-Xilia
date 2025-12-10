@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Roboto', sans-serif;
+  letter-spacing: 0.65px;
 }
 
 body {
@@ -86,7 +87,8 @@ body {
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  padding: 1.8rem;
+  padding: 1rem;
+  padding-left: 1.8rem;
   margin: 1rem;
   overflow-y: auto;
   font-weight: 200;
@@ -124,7 +126,7 @@ body {
 }
 
 .category-header input{
-  color : #9299A8;
+  color : #CCD0D9;
   font-weight: 400;
 }
 
@@ -135,7 +137,7 @@ body {
 .category-toggle {
   background: none;
   border: none;
-  color: #9299A8;
+  color: #CCD0D9;
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   margin-right: 0.5rem;
@@ -151,7 +153,7 @@ body {
   flex: 1;
   background: transparent;
   border: none;
-  color: #9299A8;
+  color: #CCD0D9;
   font-size: 1rem;
   font-weight: 500;
   padding: 0.2rem 0.4rem;
@@ -217,7 +219,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #9299A8;
+  color: #CCD0D9;
 }
 
 .delete-page-btn {
@@ -398,7 +400,7 @@ body {
 .page-header {
   display: flex;
   align-items: center;;
-  /* border-bottom: 2px solid #9299A8; */
+  /* border-bottom: 2px solid #CCD0D9; */
   margin-bottom: 2rem;
   margin-top: 5rem;
   margin-left:1rem;
