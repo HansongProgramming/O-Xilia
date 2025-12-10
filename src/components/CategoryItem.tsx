@@ -49,8 +49,8 @@ export default function CategoryItem({
           onClick={(ev) => openIconPicker(ev, "category", category.id)}
         >
           <Icon icon={`ic:${category.icon}` || "mdi:folder" } width="20" height="20" />
+          
         </button>
-
         <input
           type="text"
           className="category-name-input"

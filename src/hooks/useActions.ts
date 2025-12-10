@@ -23,7 +23,7 @@ export function useActions(
       title: "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
       categoryId,
-      icon: "ic:outline-insert-drive-file", // <-- default Iconify icon
+      icon: "outline-insert-drive-file", // no ic:
     };
 
     setCategories((prev) =>

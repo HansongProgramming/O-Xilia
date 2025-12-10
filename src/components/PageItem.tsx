@@ -33,7 +33,11 @@ export default function PageItem({
           openIconPicker(ev, "page", page.id);
         }}
       >
-        <Icon icon={`ic:${page.icon}` || "mdi:file-document-outline"} width="20" height="20" />
+        <Icon
+          icon={page.icon ? `ic:${page.icon}` : `mdi:folder`}
+          width="20"
+          height="20"
+        />
       </button>
 
       <span className="page-title">{page.title}</span>
