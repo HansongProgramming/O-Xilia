@@ -8,7 +8,7 @@
 }
 
 body {
-  background-color: #2E3440;
+  background-color: #3C4252;
   color: #d8dee9;
   height: 100vh;
   overflow: hidden;
@@ -16,7 +16,7 @@ body {
 
 .bn-editor {
   --bn-colors-editor-text: #D8DEE9;
-  --bn-colors-editor-background: #2E3440;
+  --bn-colors-editor-background: #3C4252;
 
   --bn-colors-menu-text: #ECEFF4;
   --bn-colors-menu-background: #3B4252;
@@ -27,7 +27,7 @@ body {
   --bn-colors-hovered-text: #ECEFF4;
   --bn-colors-hovered-background: #434C5E;
 
-  --bn-colors-selected-text: #2E3440;
+  --bn-colors-selected-text: #3C4252;
   --bn-colors-selected-background: #88C0D0;
 
   --bn-colors-disabled-text: #4C566A;
@@ -81,12 +81,12 @@ body {
 
 .sidebar {
   width: 360px;
-  background-color: #3B4252;
+  background-color: #30343F;
   border: 2px solid #434C5E;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding: 1.8rem;
   margin: 1rem;
   overflow-y: auto;
   font-weight: 200;
@@ -97,7 +97,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 5rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.5rem;
   border-bottom: 2px solid #686E7C;
 }
 
@@ -105,22 +105,6 @@ body {
   font-size: 1.5rem;
   color: #ECEFF4;
   font-weight: 600;
-}
-
-.create-category-btn {
-  background-color: #5E81AC;
-  color: #ECEFF4;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.create-category-btn:hover {
-  background-color: #81A1C1;
 }
 
 .categories-list {
@@ -135,13 +119,13 @@ body {
 .category-header {
   display: flex;
   align-items: center;
-  padding: 0.1rem;
   border-radius: 8px;
   transition: background-color 0.2s ease;
 }
 
 .category-header input{
   color : #9299A8;
+  font-weight: 400;
 }
 
 .category-header:hover input{
@@ -186,72 +170,9 @@ body {
   margin-left: 0.5rem;
 }
 
-.settings-btn, .add-page-btn {
-  background: none;
-  border: none;
-  color: #D8DEE9;
-  cursor: pointer;
-  padding: 0.3rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-}
-
-.settings-btn:hover, .add-page-btn:hover {
-  background-color: #4C566A;
-  color: #ECEFF4;
-}
-
-.settings-btn:hover {
-  color: #88C0D0;
-}
-
-.add-page-btn:hover {
-  color: #A3BE8C;
-}
-
-.page-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.1rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-bottom: 0.2rem;
-  font-size: 0.9rem;
-  color: #9299A8;
-  transition: all 0.2s ease;
-  margin-left: 0.5rem;
-}
-
-.header-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: var(--bg-sidebar, #2b2d31);
-  border: 1px solid #444;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  padding: .25rem 0;
-  z-index: 10;
-}
-.header-dropdown button {
-  background: none;
-  border: none;
-  color: #dcddde;
-  padding: .4rem .8rem;
-  text-align: left;
-  cursor: pointer;
-}
-.header-dropdown button:hover {
-  background: #404249;
-}
-.sidebar-header { position: relative; }
-
 .context-menu {
   position: fixed;
-  background: #2E3440;
+  background: #3C4252;
   border: 1px solid #3B4252;
   border-radius: 6px;
   padding: 6px 0;
@@ -296,6 +217,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #9299A8;
 }
 
 .delete-page-btn {
@@ -324,7 +246,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  background-color: #2E3440;
+  background-color: #3B4252;
   overflow: hidden;
 }
 
@@ -336,7 +258,7 @@ body {
 
 .editor-container {
   flex-grow: 1;
-  background-color: #2E3440;
+  background-color: #3C4252;
   border-radius: 8px;
   overflow-y: auto;
   padding: 0;
@@ -368,7 +290,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #2E3440;
+  background: #3C4252;
   color: #D8DEE9;
 }
 
@@ -407,7 +329,7 @@ body {
   }
   
   .page-item {
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem 1rem;
   }
 }
 
@@ -468,16 +390,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  padding-left: 1rem;
   border-radius: 6px;
   cursor: pointer;
-}
-
-.page-title {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .page-header {
