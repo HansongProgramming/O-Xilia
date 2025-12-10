@@ -5,7 +5,7 @@ import "./index.css";
 import Sidebar from "./components/Sidebar";
 import { useState } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
-import type { Category, Page, ContextMenuState, IconPickerState } from "./types";
+import type { ContextMenuState, IconPickerState } from "./types";
 
 import { useLoadData } from "./hooks/useLoadData";
 import { useEditor } from "./hooks/useEditor";

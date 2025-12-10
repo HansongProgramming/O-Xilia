@@ -1,4 +1,3 @@
-import React from "react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import type { IconPickerState } from "../types";

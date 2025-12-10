@@ -1,6 +1,6 @@
 import React from "react";
 import PageItem from "./PageItem";
-import type { Category, Page, ContextMenuState } from "../types";
+import type { Category, ContextMenuState } from "../types";
 
 interface CategoryItemProps {
   category: Category;
