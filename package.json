@@ -11,6 +11,8 @@
     "start": "electron ./electron/main.js"
   },
   "devDependencies": {
+    "@iconify-json/ic": "^1.2.4",
+    "@iconify/react": "^6.0.2",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^39.2.6",

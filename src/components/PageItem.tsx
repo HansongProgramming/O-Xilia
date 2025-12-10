@@ -1,5 +1,6 @@
 import React from "react";
 import type { Page } from "../types";
+import { Icon } from '@iconify/react';
 
 interface PageItemProps {
   page: Page;
@@ -32,7 +33,7 @@ export default function PageItem({
           openIconPicker(ev, "page", page.id);
         }}
       >
-        <span className="icon-text">{page.icon}</span>
+        <Icon icon={`ic:${page.icon}`} width="20" height="20" />
       </button>
 
       <span className="page-title">{page.title}</span>

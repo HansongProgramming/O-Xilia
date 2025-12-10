@@ -155,37 +155,37 @@ export function useActions(
     setContextMenu((s) => ({ ...s, visible: false, type: null, categoryId: null }));
   };
 
-  const onEmojiSelect = (emoji: any) => {
-    const icon = emoji.native;
-    if (!icon) return;
+const onIconSelect = (iconName: string) => {
+  if (!iconPicker.forType || !iconPicker.id) return;
 
-    if (iconPicker.forType === "category") {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === iconPicker.id ? { ...c, icon } : c
-        )
-      );
-    }
+  if (iconPicker.forType === "category") {
+    setCategories((prev) =>
+      prev.map((c) =>
+        c.id === iconPicker.id ? { ...c, icon: iconName } : c
+      )
+    );
+  }
 
-    if (iconPicker.forType === "page") {
-      setCategories((prev) =>
-        prev.map((c) => ({
-          ...c,
-          pages: (c.pages || []).map((p) =>
-            p.id === iconPicker.id ? { ...p, icon } : p
-          ),
-        }))
-      );
-    }
+  if (iconPicker.forType === "page") {
+    setCategories((prev) =>
+      prev.map((c) => ({
+        ...c,
+        pages: (c.pages || []).map((p) =>
+          p.id === iconPicker.id ? { ...p, icon: iconName } : p
+        ),
+      }))
+    );
+  }
 
-    setIconPicker({
-      visible: false,
-      x: 0,
-      y: 0,
-      id: null,
-      forType: null,
-    });
-  };
+  setIconPicker({
+    visible: false,
+    x: 0,
+    y: 0,
+    id: null,
+    forType: null,
+  });
+};
+
 
   return {
     createPage,
@@ -197,6 +197,6 @@ export function useActions(
     toggleCategoryExpanded,
     setCategoryFolder,
     openIconPicker,
-    onEmojiSelect,
+    onIconSelect,
   };
 }

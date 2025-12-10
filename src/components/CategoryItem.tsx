@@ -1,6 +1,7 @@
 import React from "react";
 import PageItem from "./PageItem";
 import type { Category, ContextMenuState } from "../types";
+import { Icon } from '@iconify/react';
 
 interface CategoryItemProps {
   category: Category;
@@ -47,7 +48,7 @@ export default function CategoryItem({
           className="icon-button category-icon"
           onClick={(ev) => openIconPicker(ev, "category", category.id)}
         >
-          <span className="icon-text">{category.icon}</span>
+          <Icon icon={`ic:${category.icon}`} width="20" height="20" />
         </button>
 
         <input

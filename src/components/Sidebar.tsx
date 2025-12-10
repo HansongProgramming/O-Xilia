@@ -2,6 +2,8 @@ import React from "react";
 import CategoryItem from "./CategoryItem";
 import ContextMenus from "./ContextMenu";
 import IconPickerMenu from "./IconPickerMenu";
+import { Icon } from '@iconify/react';
+
 import type {
   Category,
   ContextMenuState,
@@ -18,9 +20,7 @@ interface SidebarProps {
     forType: "category" | "page",
     id: string
   ) => void;
-  setContextMenu: React.Dispatch<
-    React.SetStateAction<ContextMenuState>
-  >;
+  setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
   createCategory: (opts?: { name?: string; focus?: boolean }) => void;
   createPage: (categoryId: string) => void;
   deleteCategory: (catId: string) => void;
@@ -29,7 +29,7 @@ interface SidebarProps {
   deletePage: (pageId: string) => void;
   setActivePageId: (id: string) => void;
   setCategoryFolder: (categoryId?: string) => Promise<void>;
-  onEmojiSelect: (emoji: any) => void;
+  onIconSelect: (iconName: string) => void; // updated from onEmojiSelect
 }
 
 export default function Sidebar({
@@ -47,9 +47,8 @@ export default function Sidebar({
   deletePage,
   setActivePageId,
   setCategoryFolder,
-  onEmojiSelect,
-}: SidebarProps)
- {
+  onIconSelect, // updated
+}: SidebarProps) {
   return (
     <aside
       className="sidebar"
@@ -63,7 +62,7 @@ export default function Sidebar({
           x: e.clientX,
           y: e.clientY,
           type: "sidebar",
-          categoryId: null
+          categoryId: null,
         });
       }}
     >
@@ -98,7 +97,8 @@ export default function Sidebar({
         setCategoryFolder={setCategoryFolder}
       />
 
-      <IconPickerMenu iconPicker={iconPicker} onEmojiSelect={onEmojiSelect} />
+      {/* updated prop from onEmojiSelect to onIconSelect */}
+      <IconPickerMenu iconPicker={iconPicker} onIconSelect={onIconSelect} />
     </aside>
   );
 }

@@ -13,6 +13,7 @@ import { useEditorChange } from "./hooks/useEditorChange";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useOutsideClick } from "./hooks/useOutsideClick";
 import { useActions } from "./hooks/useActions";
+import { Icon } from '@iconify/react';
 
 export default function App() {
     const {
@@ -78,7 +79,7 @@ export default function App() {
                 deletePage={actions.deletePage}
                 setActivePageId={setActivePageId}
                 setCategoryFolder={actions.setCategoryFolder}
-                onEmojiSelect={actions.onEmojiSelect}
+                onIconSelect={actions.onIconSelect}
             />
 
             <main className="main-content">
@@ -89,8 +90,9 @@ export default function App() {
                                 className="icon-button header-icon"
                                 onClick={(ev) => actions.openIconPicker(ev, "page", activePage.id)}
                             >
-                                <span className="icon-text">{activePage.icon}</span>
+                                <Icon icon={`ic:${activePage.icon}`} width="24" height="24" />
                             </button>
+
 
                             <input
                                 className="title-input"
