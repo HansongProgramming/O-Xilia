@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -89,6 +89,7 @@ body {
   padding: 1rem;
   margin: 1rem;
   overflow-y: auto;
+  font-weight: 200;
 }
 
 .sidebar-header {
@@ -295,7 +296,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 400;
 }
 
 .delete-page-btn {
@@ -483,7 +483,7 @@ body {
 .page-header {
   display: flex;
   align-items: center;;
-  border-bottom: 2px solid #9299A8;
+  /* border-bottom: 2px solid #9299A8; */
   margin-bottom: 2rem;
   margin-top: 5rem;
   margin-left:1rem;
