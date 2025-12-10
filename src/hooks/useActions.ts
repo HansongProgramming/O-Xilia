@@ -23,7 +23,7 @@ export function useActions(
       title: "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
       categoryId,
-      icon: "outline-insert-drive-file", // no ic:
+      icon: "outline-insert-drive-file",
     };
 
     setCategories((prev) =>
@@ -41,7 +41,7 @@ export function useActions(
     const c: Category = {
       id: uuid(),
       name: "New Category",
-      icon: "folder", // <-- default Iconify icon
+      icon: "outline-folder", // <-- default Iconify icon
       isExpanded: true,
       pages: [],
     };
