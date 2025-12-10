@@ -1,7 +1,7 @@
 export type Page = {
   id: string;
   title: string;
-  icon?: string;      // new
+  icon?: string;
   blocks: any[];
   categoryId: string;
 };
@@ -9,7 +9,7 @@ export type Page = {
 export type Category = {
   id: string;
   name: string;
-  icon?: string;      // new
+  icon?: string;      
   isExpanded: boolean;
   pages: Page[];
   folderPath?: string;
