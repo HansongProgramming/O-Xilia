@@ -516,7 +516,10 @@ export default function App() {
             </div>
           </>
         ) : (
-          <div className="no-page-selected"><h3>No page selected</h3><p>Create a new page or select an existing one to get started</p></div>
+          <div className="no-page-selected">
+            <h3>No page selected</h3>
+            <p>Create a new page or select an existing one to get started</p>
+          </div>
         )}
       </main>
     </div>
