@@ -357,6 +357,7 @@ body {
   justify-content: center;
   cursor: pointer;
   border-radius: 6px;
+  color: white;
 }
 
 .icon-button:hover {

@@ -23,7 +23,7 @@ export function useActions(
       title: "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
       categoryId,
-      icon: "📄",
+      icon: "ic:outline-insert-drive-file", // <-- default Iconify icon
     };
 
     setCategories((prev) =>
@@ -35,6 +35,18 @@ export function useActions(
     );
 
     setActivePageId(newPage.id);
+  };
+
+  const createCategory = () => {
+    const c: Category = {
+      id: uuid(),
+      name: "New Category",
+      icon: "folder", // <-- default Iconify icon
+      isExpanded: true,
+      pages: [],
+    };
+
+    setCategories((prev) => [...prev, c]);
   };
 
   const updatePageTitle = (title: string) => {
@@ -71,18 +83,6 @@ export function useActions(
 
       if (all[0]) setActivePageId(all[0].id);
     }
-  };
-
-  const createCategory = () => {
-    const c: Category = {
-      id: uuid(),
-      name: "New Category",
-      icon: "📁",
-      isExpanded: true,
-      pages: [],
-    };
-
-    setCategories((prev) => [...prev, c]);
   };
 
   const deleteCategory = (catId: string) => {
@@ -155,37 +155,36 @@ export function useActions(
     setContextMenu((s) => ({ ...s, visible: false, type: null, categoryId: null }));
   };
 
-const onIconSelect = (iconName: string) => {
-  if (!iconPicker.forType || !iconPicker.id) return;
+  const onIconSelect = (iconName: string) => {
+    if (!iconPicker.forType || !iconPicker.id) return;
 
-  if (iconPicker.forType === "category") {
-    setCategories((prev) =>
-      prev.map((c) =>
-        c.id === iconPicker.id ? { ...c, icon: iconName } : c
-      )
-    );
-  }
+    if (iconPicker.forType === "category") {
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.id === iconPicker.id ? { ...c, icon: iconName } : c
+        )
+      );
+    }
 
-  if (iconPicker.forType === "page") {
-    setCategories((prev) =>
-      prev.map((c) => ({
-        ...c,
-        pages: (c.pages || []).map((p) =>
-          p.id === iconPicker.id ? { ...p, icon: iconName } : p
-        ),
-      }))
-    );
-  }
+    if (iconPicker.forType === "page") {
+      setCategories((prev) =>
+        prev.map((c) => ({
+          ...c,
+          pages: (c.pages || []).map((p) =>
+            p.id === iconPicker.id ? { ...p, icon: iconName } : p
+          ),
+        }))
+      );
+    }
 
-  setIconPicker({
-    visible: false,
-    x: 0,
-    y: 0,
-    id: null,
-    forType: null,
-  });
-};
-
+    setIconPicker({
+      visible: false,
+      x: 0,
+      y: 0,
+      id: null,
+      forType: null,
+    });
+  };
 
   return {
     createPage,

@@ -48,7 +48,7 @@ export default function CategoryItem({
           className="icon-button category-icon"
           onClick={(ev) => openIconPicker(ev, "category", category.id)}
         >
-          <Icon icon={`ic:${category.icon}`} width="20" height="20" />
+          <Icon icon={`ic:${category.icon}` || "mdi:folder" } width="20" height="20" />
         </button>
 
         <input
@@ -65,7 +65,6 @@ export default function CategoryItem({
           {category.isExpanded ? "▼" : "▶"}
         </button>
       </div>
-
       {category.isExpanded && (
         <div className="pages-list">
           {category.pages?.map((page) => (

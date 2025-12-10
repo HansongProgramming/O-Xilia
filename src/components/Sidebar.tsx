@@ -2,7 +2,6 @@ import React from "react";
 import CategoryItem from "./CategoryItem";
 import ContextMenus from "./ContextMenu";
 import IconPickerMenu from "./IconPickerMenu";
-import { Icon } from '@iconify/react';
 
 import type {
   Category,
