@@ -4,7 +4,6 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor } from "@blocknote/core";
 import { loadDB, saveDB, chooseFolder } from "./lib/storage";
 import type { Category, Page, ContextMenuState, IconPickerState } from "./types";
-import Sidebar from "./components/Sidebar";
 
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
@@ -325,56 +324,220 @@ export default function App() {
 
   const activePage = categories.flatMap(cat => cat.pages || []).find(page => page && page.id === activePageId);
 
-return (
-  <div className="app">
-    <Sidebar
-      categories={categories}
-      activePageId={activePageId}
-      contextMenu={contextMenu}
-      iconPicker={iconPicker}
-      openIconPicker={openIconPicker}
-      setContextMenu={setContextMenu}
-      createCategory={createCategory}
-      createPage={createPage}
-      deleteCategory={deleteCategory}
-      updateCategoryName={updateCategoryName}
-      toggleCategoryExpanded={toggleCategoryExpanded}
-      deletePage={deletePage}
-      setActivePageId={setActivePageId}
-      setCategoryFolder={setCategoryFolder}
-      onEmojiSelect={onEmojiSelect}
-    />
+  return (
+    <div className="app">
+      <aside
+        className="sidebar"
+        onContextMenu={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest(".category") || target.closest(".category-header") || target.closest(".page-item")) {
+            return;
+          }
+          e.preventDefault();
+          setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            type: "sidebar",
+            categoryId: null
+          });
+        }}
+      >
+        <div className="sidebar-header">
+          <img src="./assets/OxiliaLogo.svg" alt="" className="Logo"/>
+          O-Xilia
+        </div>
 
-    <main className="main-content">
-      {activePage && editor ? (
-        <>
-          <div className="page-header">
-            <button
-              className="icon-button header-icon"
-              onClick={(ev) => openIconPicker(ev, "page", activePage.id)}
-            >
-              <span className="icon-text">{activePage.icon}</span>
+        <div className="categories-list">
+          {categories && categories.map(category => (
+            <div key={category?.id} className="category">
+              <div
+                className="category-header"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    type: "category",
+                    categoryId: category.id
+                  });
+                }}
+              >
+                <button
+                  className="icon-button category-icon"
+                  onClick={(ev) => openIconPicker(ev, "category", category.id)}
+                  title="Change category icon"
+                >
+                  <span className="icon-text">{category.icon || "📁"}</span>
+                </button>
+
+                <input
+                  type="text"
+                  value={category?.name || ""}
+                  onChange={(e) => updateCategoryName(category?.id, e.target.value)}
+                  className="category-name-input"
+                />
+
+                <button
+                  className="category-toggle"
+                  onClick={() => toggleCategoryExpanded(category?.id)}
+                >
+                  {category?.isExpanded ? "▼" : "▶"}
+                </button>
+              </div>
+
+              {category?.isExpanded && (
+                <div className="pages-list">
+                  {category?.pages && category.pages.map(page => (
+                    <div
+                      key={page?.id}
+                      className={`page-item ${page?.id === activePageId ? 'active' : ''}`}
+                      onClick={() => {
+                        setActivePageId(page?.id);
+                      }}
+                    >
+                      <button
+                        className="icon-button page-icon"
+                        onClick={(ev) => { ev.stopPropagation(); openIconPicker(ev, "page", page.id); }}
+                        title="Change page icon"
+                      >
+                        <span className="icon-text">{page.icon || "📄"}</span>
+                      </button>
+
+                      <span className="page-title">{page?.title || "Untitled"}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePage(page?.id);
+                        }}
+                        className="delete-page-btn"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Context menus */}
+        {contextMenu.visible && contextMenu.type === "category" && (
+          <div
+            className="context-menu"
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 9999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => {
+              if (contextMenu.categoryId) createPage(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ➕ Add Page
             </button>
 
-            <input
-              className="title-input"
-              value={activePage.title}
-              onChange={(e) => updatePageTitle(e.target.value)}
+            <button onClick={() => {
+              const newName = prompt("Rename category:");
+              if (newName && contextMenu.categoryId) updateCategoryName(contextMenu.categoryId, newName);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ✏️ Rename
+            </button>
+
+            <button onClick={() => {
+              if (contextMenu.categoryId) deleteCategory(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ❌ Delete
+            </button>
+
+            <button onClick={() => {
+              if (contextMenu.categoryId) setCategoryFolder(contextMenu.categoryId);
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              📁 Choose Folder...
+            </button>
+          </div>
+        )}
+
+        {contextMenu.visible && contextMenu.type === "sidebar" && (
+          <div
+            className="context-menu"
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 9999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => {
+              createCategory();
+              setContextMenu({ visible: false, x: 0, y: 0, type: null, categoryId: null });
+            }}>
+              ➕ New Category
+            </button>
+          </div>
+        )}
+
+        {/* Inline emoji picker (Notion-style) */}
+        {iconPicker.visible && (
+            <div
+            className="icon-picker-wrapper"
+            style={{
+              position: "fixed",
+              top: `${iconPicker.y}px`,
+              left: `${iconPicker.x}px`,
+              zIndex: 10000
+            }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+            <Picker
+            data={data}
+            theme="dark"
+            onEmojiSelect={(emoji: any) => onEmojiSelect(emoji)}
             />
-          </div>
+            </div>
+        )}
+      </aside>
 
-          <div className="editor-container">
-            <BlockNoteView editor={editor} />
-          </div>
-        </>
-      ) : (
-        <div className="no-page-selected">
-          <h3>No page selected</h3>
-          <p>Create or choose a page to begin</p>
-        </div>
-      )}
-    </main>
-  </div>
-);
+      <main className="main-content">
+        {activePage && editor ? (
+          <>
+            <div className="page-header">
+              <button
+                className="icon-button header-icon"
+                onClick={(ev) => openIconPicker(ev, "page", activePage.id)}
+                title="Change page icon"
+              >
+                <span className="icon-text">{activePage.icon || "📄"}</span>
+              </button>
 
+              <input
+                className="title-input"
+                value={activePage.title || ""}
+                onChange={e => updatePageTitle(e.target.value)}
+                placeholder="Page title..."
+              />
+            </div>
+
+            <div className="editor-container">
+              <BlockNoteView editor={editor} />
+            </div>
+          </>
+        ) : (
+          <div className="no-page-selected">
+            <h3>No page selected</h3>
+            <p>Create a new page or select an existing one to get started</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }

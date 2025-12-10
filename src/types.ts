@@ -14,3 +14,19 @@ export type Category = {
   pages: Page[];
   folderPath?: string;
 };
+
+export type ContextMenuState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  type: "category" | "sidebar" | null;
+  categoryId: string | null;
+};
+
+export type IconPickerState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  forType: "category" | "page" | null;
+  id: string | null;
+};
