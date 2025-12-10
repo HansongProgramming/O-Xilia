@@ -1,6 +1,3 @@
-// types.ts
-import type { PartialBlock } from "@blocknote/core";
-
 export type Page = {
   id: string;
   title: string;

@@ -5,7 +5,7 @@ import type { Page } from "../../types";
 
 
 type Props = {
-    editorRef: React.MutableRefObject<BlockNoteEditor | null>;
+    editorRef: React.RefObject<BlockNoteEditor | null>;
     activePage?: Page | null;
 };
 
@@ -29,9 +29,6 @@ export function EditorView({ editorRef, activePage }: Props) {
 
     return (
         <>
-            <div className="page-header">
-                {/* header UI is still in App so EditorView just renders the BlockNoteView */}
-            </div>
             <div className="editor-container">
                 <BlockNoteView editor={editorRef.current} />
             </div>
