@@ -174,11 +174,17 @@ body {
   background: #3C4252;
   border: 1px solid #3B4252;
   border-radius: 6px;
-  padding: 6px 0;
   z-index: 9999;
   width: 160px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.4);
   animation: pop 0.08s ease-out;
+}
+
+.context-menu hr {
+  border: none;
+  border-top: 1px solid #686E7C;
+  margin-left: 0.5rem;
+  width: 90%;
 }
 
 .context-menu button {
@@ -186,10 +192,17 @@ body {
   background: transparent;
   border: none;
   text-align: left;
-  padding: 8px 12px;
-  color: #eceff4;
-  font-size: 14px;
+  padding: 10px 12px;
+  color: #9299A8;
+  font-size: 1rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-weight: 200;
+}
+
+.context-menu button svg {
+  margin-right: 8px;
 }
 
 .context-menu button:hover {
@@ -329,7 +342,7 @@ body {
 }
 
 .title-input {
-  font-size: 3rem;
+  font-size: 4rem;
   font-weight: 600;
   padding: 0.6rem 0.4rem;
   background: transparent;

@@ -78,6 +78,8 @@ export default function ContextMenus({
           Delete
         </button>
 
+        <hr color="#686E7C"/>
+
         <button
           onClick={() => {
             setCategoryFolder(contextMenu.categoryId!);
