@@ -90,6 +90,7 @@ body {
   padding: 0.5rem;
   padding-left: 1rem;
   margin: 1rem;
+  margin-left: 1.4rem;
   overflow-y: auto;
   font-weight: 200;
 }
@@ -99,7 +100,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 5rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid #686E7C;
 }
 
@@ -127,7 +128,8 @@ body {
 
 .category-header input{
   color : #CCD0D9;
-  font-weight: 400;
+  font-weight: 300;
+  font-size: 1.2rem;
 }
 
 .category-header:hover input{
@@ -387,6 +389,7 @@ body {
   padding-left: 1rem;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 1.2rem;
 }
 
 .page-header {
@@ -421,7 +424,7 @@ body {
   text-align: left;
   padding: 8px 12px;
   color: #eceff4;
-  font-size: 14px;
+  font-size: 1rem;
   cursor: pointer;
 }
 
