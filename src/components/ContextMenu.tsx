@@ -1,5 +1,6 @@
 import React from "react";
 import type { ContextMenuState } from "../types";
+import { Icon } from '@iconify/react';
 
 interface ContextMenusProps {
   contextMenu: ContextMenuState;
@@ -51,6 +52,7 @@ export default function ContextMenus({
             close();
           }}
         >
+          <Icon icon="material-symbols:new-window-rounded" width="24" height="24" color="#fff" />
           Add Page
         </button>
 
@@ -61,6 +63,7 @@ export default function ContextMenus({
             close();
           }}
         >
+          <Icon icon="qlementine-icons:rename-16" width="24" height="24" color="#fff" />
           Rename
         </button>
 
@@ -70,6 +73,8 @@ export default function ContextMenus({
             close();
           }}
         >
+          <Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" color="#fff" />
+
           Delete
         </button>
 
@@ -79,6 +84,8 @@ export default function ContextMenus({
             close();
           }}
         >
+          <Icon icon="ic:baseline-drive-folder-upload" width="24" height="24" color="#fff" />
+
           Choose Folder...
         </button>
       </div>
@@ -97,7 +104,8 @@ export default function ContextMenus({
             close();
           }}
         >
-          ➕ New Category
+          <Icon icon="material-symbols:create-new-folder-outline" width="24" height="24" color="#fff" />
+          New Category
         </button>
       </div>
     );
