@@ -20,7 +20,7 @@ body {
   --bn-colors-editor-background: #3C4252;
 
   --bn-colors-menu-text: #ECEFF4;
-  --bn-colors-menu-background: #3B4252;
+  --bn-colors-menu-background: #3C4252;
 
   --bn-colors-tooltip-text: #ECEFF4;
   --bn-colors-tooltip-background: #434C5E;
@@ -65,8 +65,7 @@ body {
   --bn-colors-highlights-pink-text: #E5B9C6;
   --bn-colors-highlights-pink-background: #472E3A;
 
-  --bn-font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
-                    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --bn-font-family: "roboto", sans-serif;
   --bn-border-radius: 4px;
 }
 
@@ -81,7 +80,7 @@ body {
 }
 
 .sidebar {
-  width: 360px;
+  width: 300px;
   background-color: #30343F;
   border: 1px solid #686E7C;
   border-radius: 16px;
@@ -105,7 +104,7 @@ body {
 }
 
 .sidebar-header h2 {
-  font-size: 1.5rem;
+  font-size: 1rem;
   color: #ECEFF4;
   font-weight: 600;
 }
@@ -129,7 +128,7 @@ body {
 .category-header input{
   color : #CCD0D9;
   font-weight: 300;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .category-header:hover input{
@@ -402,14 +401,12 @@ body {
   padding-left: 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .page-header {
   display: flex;
   align-items: center;;
-  /* border-bottom: 2px solid #CCD0D9; */
-  margin-bottom: 2rem;
   margin-top: 5rem;
   margin-left:1rem;
 }
@@ -437,7 +434,7 @@ body {
   text-align: left;
   padding: 8px 12px;
   color: #eceff4;
-  font-size: 1rem;
+  font-size: 14px;
   cursor: pointer;
 }
 
