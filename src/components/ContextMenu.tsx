@@ -51,7 +51,7 @@ export default function ContextMenus({
             close();
           }}
         >
-          ➕ Add Page
+          Add Page
         </button>
 
         <button
@@ -61,7 +61,7 @@ export default function ContextMenus({
             close();
           }}
         >
-          ✏️ Rename
+          Rename
         </button>
 
         <button
@@ -70,7 +70,7 @@ export default function ContextMenus({
             close();
           }}
         >
-          ❌ Delete
+          Delete
         </button>
 
         <button
@@ -79,7 +79,7 @@ export default function ContextMenus({
             close();
           }}
         >
-          📁 Choose Folder...
+          Choose Folder...
         </button>
       </div>
     );
