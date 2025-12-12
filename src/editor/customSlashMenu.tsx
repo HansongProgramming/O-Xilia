@@ -1,6 +1,7 @@
 import { BlockNoteEditor } from "@blocknote/core";
 import { insertOrUpdateBlockForSlashMenu } from "@blocknote/core/extensions";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
+import {getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
 import { createAlert } from "../components/customBlocks/warningBlock"; 
 
@@ -23,8 +24,7 @@ export const insertAlertBlockItem = (editor: BlockNoteEditor) => ({
   title: "Insert Alert Block",
   onItemClick: () =>
     insertOrUpdateBlockForSlashMenu(editor, {
-      type: "alert", // fixed
-      props: { type: "warning" },
+      type: "alert" as any, // cast if using a custom block type
       content: [],
     }),
   aliases: ["alert", "warning", "info", "error", "success"],
@@ -33,10 +33,9 @@ export const insertAlertBlockItem = (editor: BlockNoteEditor) => ({
   subtext: "Insert a customizable alert block.",
 });
 
-// --- Combined custom items ---
-export const getCustomSlashMenuItems = (
-  editor: BlockNoteEditor
-): DefaultReactSuggestionItem[] => [
+// --- Combined default + custom items ---
+export const getCustomSlashMenuItems = (editor: BlockNoteEditor): DefaultReactSuggestionItem[] => [
+  ...getDefaultReactSlashMenuItems(editor), // include default items
   insertHelloWorldItem(editor),
   insertAlertBlockItem(editor),
 ];
