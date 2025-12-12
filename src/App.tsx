@@ -15,6 +15,10 @@ import { useOutsideClick } from "./hooks/useOutsideClick";
 import { useActions } from "./hooks/useActions";
 import { Icon } from '@iconify/react';
 
+import "@blocknote/mantine/style.css";
+import { SuggestionMenuController } from "@blocknote/react";
+import { getCustomSlashMenuItems } from "./editor/customSlashMenu";
+
 export default function App() {
     const {
         categories,
@@ -102,7 +106,14 @@ export default function App() {
                         </div>
 
                         <div className="editor-container">
-                            <BlockNoteView editor={editor} />
+                            <BlockNoteView editor={editor} slashMenu={false}>
+                                <SuggestionMenuController
+                                    triggerCharacter="/"
+                                    getItems={async (_query) => getCustomSlashMenuItems(editor)}
+                                />
+
+                            </BlockNoteView>
+
                         </div>
                     </>
                 ) : (

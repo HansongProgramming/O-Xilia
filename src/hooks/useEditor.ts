@@ -2,9 +2,14 @@
 import { useEffect, useState } from "react";
 import { BlockNoteEditor } from "@blocknote/core";
 import type { Category } from "../types";
+import { schema } from "../editor/schema";
 
-export function useEditor(categories: Category[], activePageId: string, isLoading: boolean) {
-  const [editor, setEditor] = useState<BlockNoteEditor>();
+export function useEditor(
+  categories: Category[],
+  activePageId: string,
+  isLoading: boolean
+) {
+  const [editor, setEditor] = useState<BlockNoteEditor<any, any, any>>(); // ← FIX
 
   useEffect(() => {
     if (isLoading) return;
@@ -15,16 +20,22 @@ export function useEditor(categories: Category[], activePageId: string, isLoadin
 
     if (!activePage) return;
 
+    // --- Create editor if not exists ---
     if (!editor) {
       const e = BlockNoteEditor.create({
+        schema,
         initialContent: activePage.blocks || [],
       });
+
       setEditor(e);
-    } else {
-      try {
-        editor.replaceBlocks(editor.document, activePage.blocks || []);
-      } catch {}
+      return;
     }
+
+    // --- Load page blocks into editor ---
+    try {
+      editor.replaceBlocks(editor.document, activePage.blocks || []);
+    } catch (_) {}
+
   }, [activePageId, isLoading]);
 
   return editor;
