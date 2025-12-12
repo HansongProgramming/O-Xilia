@@ -37,6 +37,23 @@ export const insertAlertBlockItem = (editor: BlockNoteEditor) => ({
   subtext: "Insert a customizable alert block.",
 });
 
+export const insertGraphBlockItem = (editor: BlockNoteEditor) => ({
+  title: "Insert Pipeline Block",
+  onItemClick: () =>
+    insertOrUpdateBlockForSlashMenu(editor, {
+      type: "node-graph" as any,
+      props: {
+        nodes: "[]",
+        connections: "[]"
+      }
+    }),
+  aliases: ["pipeline", "graph", "flow", "node"],
+  group: "Media",
+  icon: <MdOutlineDraw size={18} />,
+  subtext: "Insert a node-connection block.",
+});
+
+
 /* --------------------------------------------------------------- */
 /* combined list                                                   */
 /* --------------------------------------------------------------- */
@@ -45,5 +62,6 @@ export const getCustomSlashMenuItems = (
 ): DefaultReactSuggestionItem[] => [
   ...getDefaultReactSlashMenuItems(editor),
   insertAlertBlockItem(editor),
-  insertWhiteboardBlockItem(editor), // <-- new entry
+  insertWhiteboardBlockItem(editor),
+  insertGraphBlockItem(editor),
 ];
