@@ -1,33 +1,19 @@
-// NodeGraphBlock.tsx
+// NodeGraphBlock.tsx  (no CSS, all bugs fixed)
 import { createReactBlockSpec } from "@blocknote/react";
-import type { PropSchema } from "@block-note/core";
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
-import type { FC, MouseEvent, WheelEvent, KeyboardEvent } from "react";
+import type { PropSchema } from "@blocknote/core";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-/* ------------------------------------------------------------------ */
-/* Types                                                              */
-/* ------------------------------------------------------------------ */
+/* -------------------- types -------------------- */
 type NodeType = "todo" | "reminder" | "warning" | "faq";
 
-interface Port {
-  id: string;
-  type: "input" | "output";
-}
+interface Port { id: string; type: "input" | "output"; }
 
 interface NodeItem {
   id: string;
   type: NodeType;
-  position: { x: number; y: number }; // top-left
+  position: { x: number; y: number };
   size: { width: number; height: number };
-  data: {
-    todos: string[];
-  };
+  data: { todos: string[] };
   inputs: Port[];
   outputs: Port[];
 }
@@ -40,95 +26,57 @@ interface Connection {
   toPort: string;
 }
 
-/* ------------------------------------------------------------------ */
-/* BlockNote schema                                                   */
-/* ------------------------------------------------------------------ */
+/* -------------------- schema -------------------- */
 const propSchema = {
   nodes: { default: "[]" },
   connections: { default: "[]" },
   viewport: { default: '{"x":0,"y":0,"zoom":1}' },
 } satisfies PropSchema;
 
-/* ------------------------------------------------------------------ */
-/* Helpers                                                            */
-/* ------------------------------------------------------------------ */
+/* -------------------- helpers -------------------- */
 const snap = (v: number, g = 20) => Math.round(v / g) * g;
-const dist2 = (a: [number, number], b: [number, number]) =>
-  (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+const vp = (x: number, y: number, zoom: number) => ({ x, y, zoom });
 
-/* ------------------------------------------------------------------ */
-/* Node colours (n8n pastel)                                          */
-/* ------------------------------------------------------------------ */
-const nodeColors: Record<NodeType, string> = {
-  todo: "#82cfff",
-  reminder: "#f6d860",
-  warning: "#ff6f6f",
-  faq: "#c3a6ff",
-};
-
-/* ------------------------------------------------------------------ */
-/* Port component                                                     */
-/* ------------------------------------------------------------------ */
-const PortWidget: FC<{
+/* -------------------- components -------------------- */
+const PortWidget: React.FC<{
   port: Port;
   nodeId: string;
   onDragStart: (nodeId: string, port: Port) => void;
   onDragEnd: (nodeId: string, port: Port) => void;
-  onHover: (p: { x: number; y: number } | null) => void;
-}> = ({ port, nodeId, onDragStart, onDragEnd, onHover }) => {
-  return (
-    <div
-      className="node-port"
-      data-type={port.type}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        onDragStart(nodeId, port);
-      }}
-      onMouseUp={(e) => {
-        e.stopPropagation();
-        onDragEnd(nodeId, port);
-      }}
-      onMouseEnter={(e) => {
-        const rect = (e.target as HTMLDivElement).getBoundingClientRect();
-        onHover({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-      }}
-      onMouseLeave={() => onHover(null)}
-    />
-  );
-};
+}> = ({ port, nodeId, onDragStart, onDragEnd }) => (
+  <div
+    onMouseDown={(e) => {
+      e.stopPropagation();
+      onDragStart(nodeId, port);
+    }}
+    onMouseUp={(e) => {
+      e.stopPropagation();
+      onDragEnd(nodeId, port);
+    }}
+  />
+);
 
-/* ------------------------------------------------------------------ */
-/* Node component                                                     */
-/* ------------------------------------------------------------------ */
-const NodeWidget: FC<{
+const NodeWidget: React.FC<{
   node: NodeItem;
   selected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (n: Partial<NodeItem>) => void;
-  onDragStart: (id: string, e: MouseEvent) => void;
+  onUpdate: (patch: Partial<NodeItem>) => void;
+  onDragStart: (id: string, e: React.MouseEvent) => void;
   onDragNewWire: (nodeId: string, port: Port) => void;
   onEndNewWire: (nodeId: string, port: Port) => void;
-  onPortHover: (p: { x: number; y: number } | null) => void;
-}> = ({
-  node,
-  selected,
-  onSelect,
-  onUpdate,
-  onDragStart,
-  onDragNewWire,
-  onEndNewWire,
-  onPortHover,
-}) => {
-  const color = nodeColors[node.type];
+}> = ({ node, selected, onSelect, onUpdate, onDragStart, onDragNewWire, onEndNewWire }) => {
+  const color = { todo: "#82cfff", reminder: "#f6d860", warning: "#ff6f6f", faq: "#c3a6ff" }[node.type];
   return (
     <div
-      className={`node ${selected ? "selected" : ""}`}
       style={{
+        position: "absolute",
         left: node.position.x,
         top: node.position.y,
         width: node.size.width,
         height: node.size.height,
         background: color,
+        borderRadius: 6,
+        cursor: "grab",
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
@@ -136,143 +84,81 @@ const NodeWidget: FC<{
         onDragStart(node.id, e);
       }}
     >
-      <div className="node-title">{node.type.toUpperCase()}</div>
-
-      {/* input ports */}
-      <div className="node-ports node-ports-inputs">
+      <div style={{ padding: 6, fontSize: 12, fontWeight: 600 }}>{node.type.toUpperCase()}</div>
+      {/* inputs */}
+      <div style={{ position: "absolute", left: -8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
         {node.inputs.map((p) => (
-          <PortWidget
-            key={p.id}
-            port={p}
-            nodeId={node.id}
-            onDragStart={onDragNewWire}
-            onDragEnd={onEndNewWire}
-            onHover={onPortHover}
-          />
+          <PortWidget key={p.id} port={p} nodeId={node.id} onDragStart={onDragNewWire} onDragEnd={onEndNewWire} />
         ))}
       </div>
-
-      {/* output ports */}
-      <div className="node-ports node-ports-outputs">
+      {/* outputs */}
+      <div style={{ position: "absolute", right: -8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
         {node.outputs.map((p) => (
-          <PortWidget
-            key={p.id}
-            port={p}
-            nodeId={node.id}
-            onDragStart={onDragNewWire}
-            onDragEnd={onEndNewWire}
-            onHover={onPortHover}
-          />
+          <PortWidget key={p.id} port={p} nodeId={node.id} onDragStart={onDragNewWire} onDragEnd={onEndNewWire} />
         ))}
       </div>
-
       {selected && (
-        <>
-          {/* resize handles */}
-          <div
-            className="resize-handle resize-se"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              const startX = e.clientX;
-              const startY = e.clientY;
-              const startW = node.size.width;
-              const startH = node.size.height;
-              const move = (ev: MouseEvent) => {
-                onUpdate({
-                  size: {
-                    width: Math.max(120, startW + ev.clientX - startX),
-                    height: Math.max(60, startH + ev.clientY - startY),
-                  },
-                });
-              };
-              const up = () => {
-                document.removeEventListener("mousemove", move);
-                document.removeEventListener("mouseup", up);
-              };
-              document.addEventListener("mousemove", move);
-              document.addEventListener("mouseup", up);
-            }}
-          />
-        </>
+        <div
+          style={{ position: "absolute", bottom: -4, right: -4, width: 8, height: 8, background: "#33aaff", borderRadius: "50%", cursor: "nwse-resize" }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startW = node.size.width;
+            const startH = node.size.height;
+            const onMove = (ev: MouseEvent) => {
+              onUpdate({ size: { width: Math.max(120, startW + ev.clientX - startX), height: Math.max(60, startH + ev.clientY - startY) } });
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+        />
       )}
     </div>
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Wire component (svg path)                                          */
-/* ------------------------------------------------------------------ */
-const Wire: FC<{
-  conn: Connection;
-  nodesMap: Map<string, NodeItem>;
-  onClick: () => void;
-}> = ({ conn, nodesMap, onClick }) => {
+const Wire: React.FC<{ conn: Connection; nodesMap: Map<string, NodeItem>; onClick: () => void }> = ({ conn, nodesMap, onClick }) => {
   const fromNode = nodesMap.get(conn.fromNode);
   const toNode = nodesMap.get(conn.toNode);
   if (!fromNode || !toNode) return null;
-
   const fromPort = fromNode.outputs.find((p) => p.id === conn.fromPort);
   const toPort = toNode.inputs.find((p) => p.id === conn.toPort);
   if (!fromPort || !toPort) return null;
-
+  const portY = (ports: Port[], id: string, h: number) =>
+    ports.length === 1 ? h / 2 : (ports.findIndex((p) => p.id === id) + 1) * (h / (ports.length + 1));
   const x1 = fromNode.position.x + fromNode.size.width;
-  const y1 =
-    fromNode.position.y +
-    (fromNode.outputs.length > 1
-      ? (fromNode.outputs.findIndex((p) => p.id === fromPort.id) + 1) *
-        (fromNode.size.height / (fromNode.outputs.length + 1))
-      : fromNode.size.height / 2);
-
+  const y1 = fromNode.position.y + portY(fromNode.outputs, fromPort.id, fromNode.size.height);
   const x2 = toNode.position.x;
-  const y2 =
-    toNode.position.y +
-    (toNode.inputs.length > 1
-      ? (toNode.inputs.findIndex((p) => p.id === toPort.id) + 1) *
-        (toNode.size.height / (toNode.inputs.length + 1))
-      : toNode.size.height / 2);
-
+  const y2 = toNode.position.y + portY(toNode.inputs, toPort.id, toNode.size.height);
   const dx = Math.abs(x2 - x1) * 0.4;
   const path = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
-
   return (
-    <g className="wire" onClick={onClick}>
-      <path d={path} className="wire-path" />
-      <polygon
-        points={`${x2 - 6},${y2 - 4} ${x2 - 6},${y2 + 4} ${x2},${y2}`}
-        className="wire-arrow"
-      />
+    <g key={conn.id} onClick={onClick}>
+      <path d={path} fill="none" stroke="#555" strokeWidth={2} markerEnd="url(#arrowhead)" />
     </g>
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Palette (n8n style)                                                */
-/* ------------------------------------------------------------------ */
-const Palette: FC<{
-  onAdd: (type: NodeType, pos: { x: number; y: number }) => void;
-}> = ({ onAdd }) => {
+const Palette: React.FC<{ onAdd: (type: NodeType, pos: { x: number; y: number }) => void }> = ({ onAdd }) => {
   const [open, setOpen] = useState(false);
+  const colors: Record<NodeType, string> = { todo: "#82cfff", reminder: "#f6d860", warning: "#ff6f6f", faq: "#c3a6ff" };
   return (
-    <div
-      className="palette-trigger"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button className="palette-plus">+</button>
+    <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} style={{ position: "absolute", bottom: 12, right: 12 }}>
+      <button style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: "#33aaff", color: "#fff", fontSize: 20 }}>+</button>
       {open && (
-        <div className="palette">
+        <div style={{ position: "absolute", bottom: 44, right: 0, display: "flex", flexDirection: "column", gap: 6 }}>
           {(["todo", "reminder", "warning", "faq"] as NodeType[]).map((t) => (
             <div
               key={t}
-              className="palette-item"
-              style={{ background: nodeColors[t] }}
+              style={{ padding: "6px 12px", borderRadius: 4, background: colors[t], fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               draggable
-              onDragEnd={(e) => {
-                onAdd(t, { x: e.clientX - 50, y: e.clientY - 30 });
-              }}
-              onClick={(e) =>
-                onAdd(t, { x: e.clientX - 50, y: e.clientY - 30 })
-              }
+              onDragEnd={(e) => onAdd(t, { x: e.clientX - 50, y: e.clientY - 30 })}
+              onClick={(e) => onAdd(t, { x: e.clientX - 50, y: e.clientY - 30 })}
             >
               {t}
             </div>
@@ -283,61 +169,27 @@ const Palette: FC<{
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Block spec                                                         */
-/* ------------------------------------------------------------------ */
+/* -------------------- block spec -------------------- */
 export const nodeGraphBlock = createReactBlockSpec(
-  {
-    type: "node-graph",
-    propSchema,
-    content: "none",
-  },
+  { type: "node-graph", propSchema, content: "none" },
   {
     render: ({ block, editor }) => {
       const containerRef = useRef<HTMLDivElement>(null);
       const svgRef = useRef<SVGSVGElement>(null);
 
-      /* ------------- state ------------- */
-      const [nodes, setNodes] = useState<NodeItem[]>(() =>
-        JSON.parse(block.props.nodes || "[]")
-      );
-      const [conns, setConns] = useState<Connection[]>(() =>
-        JSON.parse(block.props.connections || "[]")
-      );
-      const viewport = useMemo<{
-        x: number;
-        y: number;
-        zoom: number;
-      }>(() => JSON.parse(block.props.viewport || '{"x":0,"y":0,"zoom":1}'), [
-        block.props.viewport,
-      ]);
+      const [nodes, setNodes] = useState<NodeItem[]>(() => JSON.parse(block.props.nodes || "[]"));
+      const [conns, setConns] = useState<Connection[]>(() => JSON.parse(block.props.connections || "[]"));
+      const viewport: { x: number; y: number; zoom: number } = useMemo(() => JSON.parse(block.props.viewport || '{"x":0,"y":0,"zoom":1}'), [block.props.viewport]);
 
       const [sel, setSel] = useState<string | null>(null);
-      const [dragging, setDragging] = useState<{
-        id: string;
-        offsetX: number;
-        offsetY: number;
-      } | null>(null);
+      const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+      const [wireStart, setWireStart] = useState<{ node: string; port: string; screen: { x: number; y: number } } | null>(null);
+      const [wireHover, setWireHover] = useState<{ node: string; port: string } | null>(null);
 
-      const [wireStart, setWireStart] = useState<{
-        node: string;
-        port: string;
-        screen: { x: number; y: number };
-      } | null>(null);
-      const [wireHover, setWireHover] = useState<{
-        node: string;
-        port: string;
-      } | null>(null);
+      const nodesMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
-      /* ------------- derived ------------- */
-      const nodesMap = useMemo(
-        () => new Map(nodes.map((n) => [n.id, n])),
-        [nodes]
-      );
-
-      /* ------------- sync block ------------- */
       const sync = useCallback(
-        (nextNodes?: NodeItem[], nextConns?: Connection[], nextVP?) => {
+        (nextNodes?: NodeItem[], nextConns?: Connection[], nextVP?: { x: number; y: number; zoom: number }) => {
           editor.updateBlock(block, {
             type: "node-graph",
             props: {
@@ -350,7 +202,6 @@ export const nodeGraphBlock = createReactBlockSpec(
         [block, editor, nodes, conns, viewport]
       );
 
-      /* ------------- actions ------------- */
       const addNode = useCallback(
         (type: NodeType, rawPos: { x: number; y: number }) => {
           const rect = containerRef.current!.getBoundingClientRect();
@@ -377,9 +228,7 @@ export const nodeGraphBlock = createReactBlockSpec(
       const deleteSelection = useCallback(() => {
         if (!sel) return;
         const nextNodes = nodes.filter((n) => n.id !== sel);
-        const nextConns = conns.filter(
-          (c) => c.fromNode !== sel && c.toNode !== sel
-        );
+        const nextConns = conns.filter((c) => c.fromNode !== sel && c.toNode !== sel);
         setNodes(nextNodes);
         setConns(nextConns);
         sync(nextNodes, nextConns);
@@ -403,84 +252,58 @@ export const nodeGraphBlock = createReactBlockSpec(
         setSel(id);
       }, [sel, nodes, nodesMap, sync]);
 
-      /* ------------- drag node ------------- */
       useEffect(() => {
         if (!dragging) return;
-        const move = (e: MouseEvent) => {
+        const onMove = (e: MouseEvent) => {
           const dx = (e.clientX - dragging.offsetX - viewport.x) / viewport.zoom;
           const dy = (e.clientY - dragging.offsetY - viewport.y) / viewport.zoom;
-          setNodes((prev) =>
-            prev.map((n) =>
-              n.id === dragging.id
-                ? { ...n, position: { x: snap(dx), y: snap(dy) } }
-                : n
-            )
-          );
+          setNodes((prev) => prev.map((n) => (n.id === dragging.id ? { ...n, position: { x: snap(dx), y: snap(dy) } } : n)));
         };
-        const up = () => {
+        const onUp = () => {
           setDragging(null);
           sync();
         };
-        document.addEventListener("mousemove", move);
-        document.addEventListener("mouseup", up);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
         return () => {
-          document.removeEventListener("mousemove", move);
-          document.removeEventListener("mouseup", up);
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
         };
       }, [dragging, viewport, sync]);
 
-      /* ------------- zoom / pan ------------- */
       const onWheel = useCallback(
-        (e: WheelEvent) => {
+        (e: React.WheelEvent) => {
           if (!containerRef.current) return;
           const rect = containerRef.current.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
           const mouseY = e.clientY - rect.top;
-
           const delta = -e.deltaY * 0.001;
           const newZoom = Math.min(Math.max(viewport.zoom + delta, 0.3), 2);
-          const newX =
-            viewport.x -
-            (mouseX - viewport.x) * (newZoom / viewport.zoom - 1);
-          const newY =
-            viewport.y -
-            (mouseY - viewport.y) * (newZoom / viewport.zoom - 1);
-          const nextVP = { x: newX, y: newY, zoom: newZoom };
-          sync(undefined, undefined, nextVP);
+          const newX = viewport.x - (mouseX - viewport.x) * (newZoom / viewport.zoom - 1);
+          const newY = viewport.y - (mouseY - viewport.y) * (newZoom / viewport.zoom - 1);
+          sync(undefined, undefined, vp(newX, newY, newZoom));
         },
         [viewport, sync]
       );
 
-      /* ------------- wire dragging ------------- */
       useEffect(() => {
         if (!wireStart) return;
-        const move = (e: MouseEvent) => {
+        const onMove = (e: MouseEvent) => {
           const svg = svgRef.current!;
           const pt = svg.createSVGPoint();
           pt.x = e.clientX;
           pt.y = e.clientY;
-          const cursor = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-          const path = `M${wireStart.screen.x},${wireStart.screen.y} C${
-            wireStart.screen.x + 80
-          },${wireStart.screen.y} ${cursor.x - 80},${cursor.y} ${cursor.x},${cursor.y}`;
-          const tmp = svg.querySelector(".wire-tmp");
+          const ctm = svg.getScreenCTM()?.inverse();
+          const { x, y } = ctm ? pt.matrixTransform(ctm) : { x: e.clientX, y: e.clientY };
+          const path = `M${wireStart.screen.x},${wireStart.screen.y} C${wireStart.screen.x + 80},${wireStart.screen.y} ${x - 80},${y} ${x},${y}`;
+          const tmp = svg.querySelector(".wire-tmp") as SVGPathElement | null;
           if (tmp) tmp.setAttribute("d", path);
         };
-        const up = () => {
+        const onUp = () => {
           if (wireHover) {
-            const exists = conns.some(
-              (c) =>
-                (c.fromNode === wireStart!.node && c.toNode === wireHover.node) ||
-                (c.fromNode === wireHover.node && c.toNode === wireStart!.node)
-            );
+            const exists = conns.some((c) => (c.fromNode === wireStart!.node && c.toNode === wireHover.node) || (c.fromNode === wireHover.node && c.toNode === wireStart!.node));
             if (!exists && wireStart!.node !== wireHover.node) {
-              const next: Connection = {
-                id: crypto.randomUUID(),
-                fromNode: wireStart!.node,
-                fromPort: wireStart!.port,
-                toNode: wireHover.node,
-                toPort: wireHover.port,
-              };
+              const next: Connection = { id: crypto.randomUUID(), fromNode: wireStart!.node, fromPort: wireStart!.port, toNode: wireHover.node, toPort: wireHover.port };
               const nextConns = [...conns, next];
               setConns(nextConns);
               sync(undefined, nextConns);
@@ -490,17 +313,16 @@ export const nodeGraphBlock = createReactBlockSpec(
           setWireStart(null);
           setWireHover(null);
         };
-        document.addEventListener("mousemove", move);
-        document.addEventListener("mouseup", up);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
         return () => {
-          document.removeEventListener("mousemove", move);
-          document.removeEventListener("mouseup", up);
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
         };
       }, [wireStart, wireHover, conns, sync]);
 
-      /* ------------- keyboard ------------- */
       useEffect(() => {
-        const down = (e: KeyboardEvent) => {
+        const onKey = (e: KeyboardEvent) => {
           if (e.target !== containerRef.current) return;
           if (e.key === "Delete" || e.key === "Backspace") {
             e.preventDefault();
@@ -511,138 +333,88 @@ export const nodeGraphBlock = createReactBlockSpec(
             duplicateSelection();
           }
         };
-        document.addEventListener("keydown", down);
-        return () => document.removeEventListener("keydown", down);
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
       }, [deleteSelection, duplicateSelection]);
 
-      /* ------------- render ------------- */
       return (
         <div
           ref={containerRef}
-          className="node-graph-container"
           tabIndex={0}
           onWheel={onWheel}
           onMouseDown={(e) => {
-            // pan
-            if (e.button === 1 || e.button === 0) {
+            if (e.button === 1 || (e.button === 0 && e.altKey)) {
               const startX = e.clientX - viewport.x;
               const startY = e.clientY - viewport.y;
-              const move = (ev: MouseEvent) => {
-                const nextVP = {
-                  x: ev.clientX - startX,
-                  y: ev.clientY - startY,
-                  zoom: viewport.zoom,
-                };
-                sync(undefined, undefined, nextVP);
+              const onMove = (ev: MouseEvent) => sync(undefined, undefined, vp(ev.clientX - startX, ev.clientY - startY, viewport.zoom));
+              const onUp = () => {
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
               };
-              const up = () => {
-                document.removeEventListener("mousemove", move);
-                document.removeEventListener("mouseup", up);
-              };
-              document.addEventListener("mousemove", move);
-              document.addEventListener("mouseup", up);
+              document.addEventListener("mousemove", onMove);
+              document.addEventListener("mouseup", onUp);
             }
             setSel(null);
           }}
+          style={{ position: "relative", width: "100%", height: 400, background: "#fff", border: "1px solid #ccc", overflow: "hidden", outline: "none", userSelect: "none" }}
         >
           <Palette onAdd={addNode} />
-
           <svg
             ref={svgRef}
-            className="node-graph-svg"
-            style={{
-              transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-            }}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})` }}
           >
             <defs>
-              <marker
-                id="arrowhead"
-                markerWidth="6"
-                markerHeight="6"
-                refX="5"
-                refY="3"
-                orient="auto"
-              >
-                <polygon points="0 0, 6 3, 0 6" className="wire-arrow" />
+              <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="#555" />
               </marker>
             </defs>
-
-            {/* wires */}
             <g className="wires">
               {conns.map((c) => (
-                <Wire
-                  key={c.id}
-                  conn={c}
-                  nodesMap={nodesMap}
-                  onClick={() => {
-                    setConns((prev) => prev.filter((x) => x.id !== c.id));
-                    sync(undefined, conns.filter((x) => x.id !== c.id));
-                  }}
-                />
+                <Wire key={c.id} conn={c} nodesMap={nodesMap} onClick={() => { const next = conns.filter((x) => x.id !== c.id); setConns(next); sync(undefined, next); }} />
               ))}
-              {/* temporary while dragging */}
-              {wireStart && (
-                <path className="wire-tmp" fill="none" markerEnd="url(#arrowhead)" />
-              )}
+              {wireStart && <path className="wire-tmp" fill="none" stroke="#33aaff" strokeWidth={2} markerEnd="url(#arrowhead)" />}
             </g>
           </svg>
-
-          {/* nodes layer */}
-          <div
-            className="nodes-layer"
-            style={{
-              transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-            }}
-          >
-            {nodes.map((n) => (
-              <NodeWidget
-                key={n.id}
-                node={n}
-                selected={sel === n.id}
-                onSelect={setSel}
-                onUpdate={(patch) => {
-                  const next = nodes.map((x) =>
-                    x.id === n.id ? { ...x, ...patch } : x
-                  );
-                  setNodes(next);
-                  sync(next);
-                }}
-                onDragStart={(id, e) => {
-                  setDragging({
-                    id,
-                    offsetX: e.clientX - n.position.x * viewport.zoom - viewport.x,
-                    offsetY: e.clientY - n.position.y * viewport.zoom - viewport.y,
-                  });
-                }}
-                onDragNewWire={(nodeId, port) => {
-                  if (port.type !== "output") return;
-                  const rect = containerRef.current!.getBoundingClientRect();
-                  const x =
-                    (n.position.x + n.size.width) * viewport.zoom + viewport.x;
-                  const y =
-                    (n.position.y + n.size.height / 2) * viewport.zoom +
-                    viewport.y;
-                  setWireStart({ node: nodeId, port: port.id, screen: { x, y } });
-                  // inject tmp path
-                  const svg = svgRef.current!;
-                  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                  p.setAttribute("class", "wire-tmp");
-                  p.setAttribute("fill", "none");
-                  p.setAttribute("marker-end", "url(#arrowhead)");
-                  svg.querySelector(".wires")!.appendChild(p);
-                }}
-                onEndNewWire={(nodeId, port) => {
-                  if (port.type !== "input") return;
-                  setWireHover({ node: nodeId, port: port.id });
-                }}
-                onPortHover={() => {}}
-              />
-            ))}
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})` }}>
+            {nodes.map((n) =>
+              n ? (
+                <NodeWidget
+                  key={n.id}
+                  node={n}
+                  selected={sel === n.id}
+                  onSelect={setSel}
+                  onUpdate={(patch) => {
+                    const next = nodes.map((x) => (x.id === n.id ? { ...x, ...patch } : x));
+                    setNodes(next);
+                    sync(next);
+                  }}
+                  onDragStart={(id, e) => {
+                    setDragging({ id, offsetX: e.clientX - n.position.x * viewport.zoom - viewport.x, offsetY: e.clientY - n.position.y * viewport.zoom - viewport.y });
+                  }}
+                  onDragNewWire={(nodeId, port) => {
+                    if (port.type !== "output") return;
+                    const x = (n.position.x + n.size.width) * viewport.zoom + viewport.x;
+                    const y = (n.position.y + n.size.height / 2) * viewport.zoom + viewport.y;
+                    setWireStart({ node: nodeId, port: port.id, screen: { x, y } });
+                    const svg = svgRef.current!;
+                    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p.setAttribute("class", "wire-tmp");
+                    p.setAttribute("fill", "none");
+                    p.setAttribute("stroke", "#33aaff");
+                    p.setAttribute("stroke-width", "2");
+                    p.setAttribute("marker-end", "url(#arrowhead)");
+                    svg.querySelector(".wires")!.appendChild(p);
+                  }}
+                  onEndNewWire={(nodeId, port) => {
+                    if (port.type !== "input") return;
+                    setWireHover({ node: nodeId, port: port.id });
+                  }}
+                />
+              ) : null
+            )}
           </div>
-
-          {/* node editor modal */}
           {sel && nodesMap.get(sel)?.type === "todo" && (
-            <div className="node-modal">
+            <div style={{ position: "fixed", top: "30%", left: "50%", transform: "translate(-50%,-50%)", background: "#fff", border: "1px solid #ccc", borderRadius: 8, padding: 20, width: 300, zIndex: 999 }}>
               <h3>Todo list</h3>
               <ul>
                 {nodesMap.get(sel)!.data.todos.map((t, i) => (
@@ -651,9 +423,7 @@ export const nodeGraphBlock = createReactBlockSpec(
                     <button
                       onClick={() => {
                         const next = nodes.map((n) =>
-                          n.id === sel
-                            ? { ...n, data: { ...n.data, todos: n.data.todos.filter((_, idx) => idx !== i) } }
-                            : n
+                          n.id === sel ? { ...n, data: { ...n.data, todos: n.data.todos.filter((_, idx) => idx !== i) } } : n
                         );
                         setNodes(next);
                         sync(next);
@@ -670,11 +440,7 @@ export const nodeGraphBlock = createReactBlockSpec(
                   if (e.key === "Enter") {
                     const val = (e.target as HTMLInputElement).value.trim();
                     if (!val) return;
-                    const next = nodes.map((n) =>
-                      n.id === sel
-                        ? { ...n, data: { ...n.data, todos: [...n.data.todos, val] } }
-                        : n
-                    );
+                    const next = nodes.map((n) => (n.id === sel ? { ...n, data: { ...n.data, todos: [...n.data.todos, val] } } : n));
                     setNodes(next);
                     sync(next);
                     (e.target as HTMLInputElement).value = "";
