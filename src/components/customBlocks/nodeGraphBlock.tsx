@@ -240,7 +240,9 @@ export const nodeGraphBlock = createReactBlockSpec(
   {
     render: ({ block, editor }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
+  /* ------------- state ------------- */
   const [nodes, setNodes] = useState<NodeItem[]>(() =>
     JSON.parse(block.props.nodes || "[]").map(normalizeNode)
   );
@@ -252,11 +254,25 @@ export const nodeGraphBlock = createReactBlockSpec(
     [block.props.viewport]
   );
 
-  /* ---------- right-click menu ---------- */
   const [menu, setMenu] = useState<null | { x: number; y: number }>(null);
+  const [draggingNode, setDraggingNode] = useState<{
+    id: string;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
+  const [panning, setPanning] = useState<{
+    startX: number;
+    startY: number;
+  } | null>(null);
+  const [wireStart, setWireStart] = useState<{
+    node: string;
+    port: string;
+    screen: { x: number; y: number };
+  } | null>(null);
 
   const nodesMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
+  /* ------------- sync ------------- */
   const sync = useCallback(
     (n = nodes, c = conns, v = viewport) =>
       editor.updateBlock(block, {
@@ -270,7 +286,7 @@ export const nodeGraphBlock = createReactBlockSpec(
     [block, editor, nodes, conns, viewport]
   );
 
-  /* ---------- add node at given canvas point ---------- */
+  /* ------------- add node ------------- */
   const addNodeAt = (type: NodeType, canvasX: number, canvasY: number) => {
     const id = crypto.randomUUID();
     const n: NodeItem = normalizeNode({
@@ -283,29 +299,24 @@ export const nodeGraphBlock = createReactBlockSpec(
     sync(next);
   };
 
-  /* ---------- context-menu handlers ---------- */
+  /* ------------- right-click menu ------------- */
   const onContext = (e: React.MouseEvent) => {
-    e.preventDefault(); // stop browser menu
+    e.preventDefault();
     const rect = containerRef.current!.getBoundingClientRect();
-    setMenu({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    setMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
   const closeMenu = () => setMenu(null);
-
-  /* ---------- click outside to close ---------- */
   useEffect(() => {
     if (!menu) return;
-    const hide = () => closeMenu();
-    document.addEventListener("click", hide);
-    return () => document.removeEventListener("click", hide);
+    const close = () => closeMenu();
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
   }, [menu]);
 
-  /* ---------- optional: pan & zoom ---------- */
+  /* ------------- zoom ------------- */
   const onWheel = (e: React.WheelEvent) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = containerRef.current!.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const delta = -e.deltaY * 0.001;
@@ -315,10 +326,89 @@ export const nodeGraphBlock = createReactBlockSpec(
     sync(nodes, conns, vp(newX, newY, newZoom));
   };
 
+  /* ------------- pan ------------- */
+  useEffect(() => {
+    if (!panning) return;
+    const onMove = (e: MouseEvent) => {
+      sync(nodes, conns, vp(viewport.x + e.clientX - panning.startX, viewport.y + e.clientY - panning.startY, viewport.zoom));
+    };
+    const onUp = () => setPanning(null);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, [panning, viewport, nodes, conns, sync]);
+
+  /* ------------- drag node ------------- */
+  useEffect(() => {
+    if (!draggingNode) return;
+    const onMove = (e: MouseEvent) => {
+      const dx = (e.clientX - draggingNode.offsetX - viewport.x) / viewport.zoom;
+      const dy = (e.clientY - draggingNode.offsetY - viewport.y) / viewport.zoom;
+      setNodes((prev) => prev.map((n) => (n.id === draggingNode.id ? { ...n, position: { x: snap(dx), y: snap(dy) } } : n)));
+    };
+    const onUp = () => {
+      setDraggingNode(null);
+      sync(); // persist position
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, [draggingNode, viewport, sync]);
+
+  /* ------------- wire drag ------------- */
+  const [wireHover, setWireHover] = useState<{ node: string; port: string } | null>(null);
+  useEffect(() => {
+    if (!wireStart) return;
+    const onMove = (e: MouseEvent) => {
+      const svg = svgRef.current!;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const ctm = svg.getScreenCTM()?.inverse();
+      const { x, y } = ctm ? pt.matrixTransform(ctm) : { x: e.clientX, y: e.clientY };
+      const path = `M${wireStart.screen.x},${wireStart.screen.y} C${wireStart.screen.x + 80},${wireStart.screen.y} ${x - 80},${y} ${x},${y}`;
+      const tmp = svg.querySelector(".wire-tmp") as SVGPathElement | null;
+      if (tmp) tmp.setAttribute("d", path);
+    };
+    const onUp = () => {
+      if (wireHover) {
+        const exists = conns.some((c) => (c.fromNode === wireStart!.node && c.toNode === wireHover.node) || (c.fromNode === wireHover.node && c.toNode === wireStart!.node));
+        if (!exists && wireStart!.node !== wireHover.node) {
+          const next: Connection = { id: crypto.randomUUID(), fromNode: wireStart!.node, fromPort: wireStart!.port, toNode: wireHover.node, toPort: wireHover.port };
+          const nextConns = [...conns, next];
+          setConns(nextConns);
+          sync(nodes, nextConns);
+        }
+      }
+      svgRef.current!.querySelector(".wire-tmp")?.remove();
+      setWireStart(null);
+      setWireHover(null);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, [wireStart, wireHover, conns, nodes, sync]);
+
+  /* ------------- render ------------- */
   return (
     <div
       ref={containerRef}
       onContextMenu={onContext}
+      onMouseDown={(e) => {
+        // middle-mouse or space+left = pan
+        if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+          setPanning({ startX: e.clientX - viewport.x, startY: e.clientY - viewport.y });
+        }
+      }}
       onWheel={onWheel}
       style={{
         position: "relative",
@@ -327,11 +417,12 @@ export const nodeGraphBlock = createReactBlockSpec(
         background: "#fff",
         border: "1px solid #ccc",
         overflow: "hidden",
-        cursor: "crosshair",
+        userSelect: "none",
       }}
     >
-      {/* ------------- wires ------------- */}
+      {/* wires (with arrows) */}
       <svg
+        ref={svgRef}
         style={{
           position: "absolute",
           inset: 0,
@@ -339,21 +430,34 @@ export const nodeGraphBlock = createReactBlockSpec(
           transform: `translate(${viewport.x}px,${viewport.y}px) scale(${viewport.zoom})`,
         }}
       >
-        {conns.map((c) => (
-          <Wire
-            key={c.id}
-            conn={c}
-            nodesMap={nodesMap}
-            onClick={() => {
-              const next = conns.filter((x) => x.id !== c.id);
-              setConns(next);
-              sync(nodes, next);
-            }}
-          />
-        ))}
+        <defs>
+          <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <polygon points="0 0, 6 3, 0 6" fill="#555" />
+          </marker>
+        </defs>
+        <g className="wires">
+          {conns.map((c) => {
+            const a = nodesMap.get(c.fromNode);
+            const b = nodesMap.get(c.toNode);
+            if (!a || !b) return null;
+            const x1 = a.position.x + a.size.width;
+            const y1 = a.position.y + a.size.height / 2;
+            const x2 = b.position.x;
+            const y2 = b.position.y + b.size.height / 2;
+            const dx = Math.abs(x2 - x1) * 0.4;
+            const d = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
+            return (
+              <g key={c.id} onClick={() => { const next = conns.filter((x) => x.id !== c.id); setConns(next); sync(nodes, next); }}>
+                <path d={d} fill="none" stroke="#555" strokeWidth={2} markerEnd="url(#arrowhead)" />
+              </g>
+            );
+          })}
+          {/* temporary wire while dragging */}
+          {wireStart && <path className="wire-tmp" fill="none" stroke="#33aaff" strokeWidth={2} markerEnd="url(#arrowhead)" />}
+        </g>
       </svg>
 
-      {/* ------------- nodes ------------- */}
+      {/* nodes layer */}
       <div
         style={{
           position: "absolute",
@@ -368,20 +472,42 @@ export const nodeGraphBlock = createReactBlockSpec(
             selected={false}
             onSelect={() => {}}
             onUpdate={(p) => {
-              const next = nodes.map((x) =>
-                x.id === n.id ? { ...x, ...p } : x
-              );
+              const next = nodes.map((x) => (x.id === n.id ? { ...x, ...p } : x));
               setNodes(next);
               sync(next);
             }}
-            onDragStart={() => {}}
-            onDragNewWire={() => {}}
-            onEndNewWire={() => {}}
+            onDragStart={(id, e) => {
+              const rect = containerRef.current!.getBoundingClientRect();
+              setDraggingNode({
+                id,
+                offsetX: e.clientX - rect.left - n.position.x * viewport.zoom - viewport.x,
+                offsetY: e.clientY - rect.top - n.position.y * viewport.zoom - viewport.y,
+              });
+            }}
+            onDragNewWire={(nodeId, port) => {
+              if (port.type !== "output") return;
+              const rect = containerRef.current!.getBoundingClientRect();
+              const x = (n.position.x + n.size.width) * viewport.zoom + viewport.x;
+              const y = (n.position.y + n.size.height / 2) * viewport.zoom + viewport.y;
+              setWireStart({ node: nodeId, port: port.id, screen: { x, y } });
+              const svg = svgRef.current!;
+              const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+              p.setAttribute("class", "wire-tmp");
+              p.setAttribute("fill", "none");
+              p.setAttribute("stroke", "#33aaff");
+              p.setAttribute("stroke-width", "2");
+              p.setAttribute("marker-end", "url(#arrowhead)");
+              svg.querySelector(".wires")!.appendChild(p);
+            }}
+            onEndNewWire={(nodeId, port) => {
+              if (port.type !== "input") return;
+              setWireHover({ node: nodeId, port: port.id });
+            }}
           />
         ))}
       </div>
 
-      {/* ------------- right-click menu ------------- */}
+      {/* right-click menu (unchanged) */}
       {menu && (
         <div
           style={{
@@ -395,7 +521,7 @@ export const nodeGraphBlock = createReactBlockSpec(
             zIndex: 20,
             boxShadow: "0 2px 8px rgba(0,0,0,.15)",
           }}
-          onClick={(e) => e.stopPropagation()} // keep menu open on internal clicks
+          onClick={(e) => e.stopPropagation()}
         >
           {(["todo", "reminder", "warning", "faq"] as NodeType[]).map((t) => (
             <div
