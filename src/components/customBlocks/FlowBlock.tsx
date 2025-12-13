@@ -77,7 +77,7 @@ export const flowBlock = createReactBlockSpec(
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow));
-        } catch {}
+        } catch { }
       }, [block.props.flow]);
 
       /* -------------------- persist helper -------------------- */
@@ -157,15 +157,28 @@ export const flowBlock = createReactBlockSpec(
       /* -------------------- add node -------------------- */
       const addNode = useCallback(
         (kind: string) => {
-          setFlow((prev) => {
-            const newNode: Node = {
-              id: `${kind}-${Date.now()}`,
-              position: menu.position,
-              data: {
-                label: kind.toUpperCase(),
+          const pageId = crypto.randomUUID();
+
+          // 🔹 fire event so App can create a page
+          window.dispatchEvent(
+            new CustomEvent("flow:create-page", {
+              detail: {
+                pageId,
+                title: kind.toUpperCase(),
                 kind,
               },
-              type: "default",
+            })
+          );
+
+          setFlow((prev) => {
+            const newNode: Node = {
+              id: `node-${pageId}`,
+              position: menu.position,
+              data: {
+                pageId,
+                title: kind.toUpperCase(),
+                kind,
+              },
             };
 
             const next = {
@@ -181,6 +194,7 @@ export const flowBlock = createReactBlockSpec(
         },
         [menu.position, persist]
       );
+
 
       /* -------------------- UI -------------------- */
       return (
@@ -202,8 +216,16 @@ export const flowBlock = createReactBlockSpec(
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeDoubleClick={(_, node) => {
+              window.dispatchEvent(
+                new CustomEvent("flow:open-page", {
+                  detail: { pageId: node.data.pageId },
+                })
+              );
+            }}
             fitView
           >
+
             <MiniMap />
             <Controls />
             <Background gap={16} />

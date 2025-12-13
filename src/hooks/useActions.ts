@@ -1,4 +1,5 @@
 // src/hooks/useActions.ts
+import { useEffect } from "react";
 import { v4 as uuid } from "uuid";
 import { chooseFolder } from "../lib/storage";
 import type {
@@ -17,10 +18,10 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
-  const createPage = (categoryId: string) => {
+  const createPage = (categoryId: string, id?: string, title?: string) => {
     const newPage: Page = {
-      id: uuid(),
-      title: "Untitled",
+      id: id || uuid(),
+      title: title || "Untitled",
       blocks: [{ type: "paragraph", content: "" }],
       categoryId,
       icon: "outline-insert-drive-file",
@@ -41,7 +42,7 @@ export function useActions(
     const c: Category = {
       id: uuid(),
       name: "New Category",
-      icon: "outline-folder", // <-- default Iconify icon
+      icon: "outline-folder",
       isExpanded: true,
       pages: [],
     };
@@ -86,15 +87,17 @@ export function useActions(
   };
 
   const deleteCategory = (catId: string) => {
-    setCategories(prev => {
+    setCategories((prev) => {
       if ((prev || []).length <= 1) {
         alert("Cannot delete the last category");
         return prev;
       }
 
-      const newCats = (prev || []).filter(c => c.id !== catId);
+      const newCats = (prev || []).filter((c) => c.id !== catId);
 
-      const stillExists = newCats.flatMap(c => c.pages || []).find(p => p.id === activePageId);
+      const stillExists = newCats
+        .flatMap((c) => c.pages || [])
+        .find((p) => p.id === activePageId);
       if (!stillExists) {
         const fallback = newCats[0]?.pages?.[0];
         if (fallback) setActivePageId(fallback.id);
@@ -185,6 +188,31 @@ export function useActions(
       forType: null,
     });
   };
+
+  // -------------------- FlowBlock integration --------------------
+  useEffect(() => {
+    const handleCreatePage = (e: any) => {
+      const { pageId, title } = e.detail;
+      const categoryId = categories[0]?.id;
+      if (!categoryId) return alert("No category available to create a page.");
+
+      createPage(categoryId, pageId, title);
+      setActivePageId(pageId);
+    };
+
+    const handleOpenPage = (e: any) => {
+      const { pageId } = e.detail;
+      setActivePageId(pageId);
+    };
+
+    window.addEventListener("flow:create-page", handleCreatePage);
+    window.addEventListener("flow:open-page", handleOpenPage);
+
+    return () => {
+      window.removeEventListener("flow:create-page", handleCreatePage);
+      window.removeEventListener("flow:open-page", handleOpenPage);
+    };
+  }, [categories, createPage, setActivePageId]);
 
   return {
     createPage,
