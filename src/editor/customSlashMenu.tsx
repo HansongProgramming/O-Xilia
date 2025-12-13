@@ -4,6 +4,7 @@ import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
 import { MdOutlineDraw } from "react-icons/md"; 
+import { TbRoute } from "react-icons/tb";   // or any icon you like
 
 /* --------------------------------------------------------------- */
 /* whiteboard slash item                                           */
@@ -37,22 +38,18 @@ export const insertAlertBlockItem = (editor: BlockNoteEditor) => ({
   subtext: "Insert a customizable alert block.",
 });
 
-export const insertGraphBlockItem = (editor: BlockNoteEditor) => ({
-  title: "Insert Pipeline Block",
+export const insertFlowBlockItem = (editor: BlockNoteEditor) => ({
+  title: "Flow diagram",
   onItemClick: () =>
     insertOrUpdateBlockForSlashMenu(editor, {
-      type: "node-graph" as any,
-      props: {
-        nodes: "[]",
-        connections: "[]"
-      }
+      type: "flow" as any,
+      props: { flow: JSON.stringify({ nodes: [], edges: [] }) },
     }),
-  aliases: ["pipeline", "graph", "flow", "node"],
+  aliases: ["flow", "diagram", "nodes", "react-flow"],
   group: "Media",
-  icon: <MdOutlineDraw size={18} />,
-  subtext: "Insert a node-connection block.",
+  icon: <TbRoute size={18} />,
+  subtext: "Insert an interactive React-Flow canvas.",
 });
-
 
 /* --------------------------------------------------------------- */
 /* combined list                                                   */
@@ -63,5 +60,5 @@ export const getCustomSlashMenuItems = (
   ...getDefaultReactSlashMenuItems(editor),
   insertAlertBlockItem(editor),
   insertWhiteboardBlockItem(editor),
-  insertGraphBlockItem(editor),
+  insertFlowBlockItem(editor),   
 ];
