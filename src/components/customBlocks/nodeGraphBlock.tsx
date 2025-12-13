@@ -239,99 +239,188 @@ export const nodeGraphBlock = createReactBlockSpec(
   { type: "node-graph", propSchema, content: "none" },
   {
     render: ({ block, editor }) => {
-      const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-      const [nodes, setNodes] = useState<NodeItem[]>(() =>
-        JSON.parse(block.props.nodes || "[]").map(normalizeNode)
-      );
-      const [conns, setConns] = useState<Connection[]>(() =>
-        JSON.parse(block.props.connections || "[]")
-      );
-      const viewport = useMemo(
-        () => JSON.parse(block.props.viewport || '{"x":0,"y":0,"zoom":1}'),
-        [block.props.viewport]
-      );
+  const [nodes, setNodes] = useState<NodeItem[]>(() =>
+    JSON.parse(block.props.nodes || "[]").map(normalizeNode)
+  );
+  const [conns, setConns] = useState<Connection[]>(() =>
+    JSON.parse(block.props.connections || "[]")
+  );
+  const viewport = useMemo(
+    () => JSON.parse(block.props.viewport || '{"x":0,"y":0,"zoom":1}'),
+    [block.props.viewport]
+  );
 
-      const nodesMap = useMemo(
-        () => new Map(nodes.map((n) => [n.id, n])),
-        [nodes]
-      );
+  /* ---------- right-click menu ---------- */
+  const [menu, setMenu] = useState<null | { x: number; y: number }>(null);
 
-      const sync = useCallback(
-        (n = nodes, c = conns, v = viewport) =>
-          editor.updateBlock(block, {
-            type: "node-graph",
-            props: {
-              nodes: JSON.stringify(n),
-              connections: JSON.stringify(c),
-              viewport: JSON.stringify(v),
-            },
-          }),
-        [block, editor, nodes, conns, viewport]
-      );
+  const nodesMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
-      return (
+  const sync = useCallback(
+    (n = nodes, c = conns, v = viewport) =>
+      editor.updateBlock(block, {
+        type: "node-graph",
+        props: {
+          nodes: JSON.stringify(n),
+          connections: JSON.stringify(c),
+          viewport: JSON.stringify(v),
+        },
+      }),
+    [block, editor, nodes, conns, viewport]
+  );
+
+  /* ---------- add node at given canvas point ---------- */
+  const addNodeAt = (type: NodeType, canvasX: number, canvasY: number) => {
+    const id = crypto.randomUUID();
+    const n: NodeItem = normalizeNode({
+      id,
+      type,
+      position: { x: snap(canvasX - 60), y: snap(canvasY - 40) },
+    });
+    const next = [...nodes, n];
+    setNodes(next);
+    sync(next);
+  };
+
+  /* ---------- context-menu handlers ---------- */
+  const onContext = (e: React.MouseEvent) => {
+    e.preventDefault(); // stop browser menu
+    const rect = containerRef.current!.getBoundingClientRect();
+    setMenu({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+  const closeMenu = () => setMenu(null);
+
+  /* ---------- click outside to close ---------- */
+  useEffect(() => {
+    if (!menu) return;
+    const hide = () => closeMenu();
+    document.addEventListener("click", hide);
+    return () => document.removeEventListener("click", hide);
+  }, [menu]);
+
+  /* ---------- optional: pan & zoom ---------- */
+  const onWheel = (e: React.WheelEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const delta = -e.deltaY * 0.001;
+    const newZoom = Math.min(Math.max(viewport.zoom + delta, 0.3), 2);
+    const newX = viewport.x - (mouseX - viewport.x) * (newZoom / viewport.zoom - 1);
+    const newY = viewport.y - (mouseY - viewport.y) * (newZoom / viewport.zoom - 1);
+    sync(nodes, conns, vp(newX, newY, newZoom));
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      onContextMenu={onContext}
+      onWheel={onWheel}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: 400,
+        background: "#fff",
+        border: "1px solid #ccc",
+        overflow: "hidden",
+        cursor: "crosshair",
+      }}
+    >
+      {/* ------------- wires ------------- */}
+      <svg
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          transform: `translate(${viewport.x}px,${viewport.y}px) scale(${viewport.zoom})`,
+        }}
+      >
+        {conns.map((c) => (
+          <Wire
+            key={c.id}
+            conn={c}
+            nodesMap={nodesMap}
+            onClick={() => {
+              const next = conns.filter((x) => x.id !== c.id);
+              setConns(next);
+              sync(nodes, next);
+            }}
+          />
+        ))}
+      </svg>
+
+      {/* ------------- nodes ------------- */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          transform: `translate(${viewport.x}px,${viewport.y}px) scale(${viewport.zoom})`,
+        }}
+      >
+        {nodes.map((n) => (
+          <NodeWidget
+            key={n.id}
+            node={n}
+            selected={false}
+            onSelect={() => {}}
+            onUpdate={(p) => {
+              const next = nodes.map((x) =>
+                x.id === n.id ? { ...x, ...p } : x
+              );
+              setNodes(next);
+              sync(next);
+            }}
+            onDragStart={() => {}}
+            onDragNewWire={() => {}}
+            onEndNewWire={() => {}}
+          />
+        ))}
+      </div>
+
+      {/* ------------- right-click menu ------------- */}
+      {menu && (
         <div
-          ref={containerRef}
           style={{
-            position: "relative",
-            width: "100%",
-            height: 400,
+            position: "absolute",
+            left: menu.x,
+            top: menu.y,
             background: "#fff",
-            border: "1px solid #ccc",
-            overflow: "hidden",
+            border: "1px solid #999",
+            borderRadius: 4,
+            padding: "4px 0",
+            zIndex: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,.15)",
           }}
+          onClick={(e) => e.stopPropagation()} // keep menu open on internal clicks
         >
-          <svg
-            style={{
-              position: "absolute",
-              inset: 0,
-              pointerEvents: "none",
-              transform: `translate(${viewport.x}px,${viewport.y}px) scale(${viewport.zoom})`,
-            }}
-          >
-            {conns.map((c) => (
-              <Wire
-                key={c.id}
-                conn={c}
-                nodesMap={nodesMap}
-                onClick={() => {
-                  const next = conns.filter((x) => x.id !== c.id);
-                  setConns(next);
-                  sync(nodes, next);
-                }}
-              />
-            ))}
-          </svg>
-
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              transform: `translate(${viewport.x}px,${viewport.y}px) scale(${viewport.zoom})`,
-            }}
-          >
-            {nodes.map((n) => (
-              <NodeWidget
-                key={n.id}
-                node={n}
-                selected={false}
-                onSelect={() => {}}
-                onUpdate={(p) => {
-                  const next = nodes.map((x) =>
-                    x.id === n.id ? { ...x, ...p } : x
-                  );
-                  setNodes(next);
-                  sync(next);
-                }}
-                onDragStart={() => {}}
-                onDragNewWire={() => {}}
-                onEndNewWire={() => {}}
-              />
-            ))}
-          </div>
+          {(["todo", "reminder", "warning", "faq"] as NodeType[]).map((t) => (
+            <div
+              key={t}
+              onClick={() => {
+                const rect = containerRef.current!.getBoundingClientRect();
+                const canvasX = (menu.x - viewport.x) / viewport.zoom;
+                const canvasY = (menu.y - viewport.y) / viewport.zoom;
+                addNodeAt(t, canvasX, canvasY);
+                closeMenu();
+              }}
+              style={{
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+                background: { todo: "#82cfff", reminder: "#f6d860", warning: "#ff6f6f", faq: "#c3a6ff" }[t],
+              }}
+            >
+              {t}
+            </div>
+          ))}
         </div>
-      );
-    },
+      )}
+    </div>
+  );
+},
   }
 );
