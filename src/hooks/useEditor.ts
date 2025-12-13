@@ -1,15 +1,37 @@
-// src/hooks/useEditor.ts
 import { useEffect, useState } from "react";
 import { BlockNoteEditor } from "@blocknote/core";
 import type { Category } from "../types";
 import { schema } from "../editor/schema";
+
+function sanitizeBlocks(blocks: any[]) {
+  if (!Array.isArray(blocks)) return [];
+
+  return blocks
+    .filter((block) =>
+      ["paragraph", "alert", "whiteboard", "flow"].includes(block?.type)
+    )
+    .map((block) => {
+      if (block.type === "flow") {
+        return {
+          ...block,
+          props: {
+            flow:
+              block.props?.flow ??
+              JSON.stringify({ nodes: [], edges: [] }),
+          },
+        };
+      }
+      return block;
+    });
+}
 
 export function useEditor(
   categories: Category[],
   activePageId: string,
   isLoading: boolean
 ) {
-  const [editor, setEditor] = useState<BlockNoteEditor<any, any, any>>(); // ← FIX
+  const [editor, setEditor] =
+    useState<BlockNoteEditor<any, any, any>>();
 
   useEffect(() => {
     if (isLoading) return;
@@ -20,22 +42,23 @@ export function useEditor(
 
     if (!activePage) return;
 
-    // --- Create editor if not exists ---
+    const safeBlocks = sanitizeBlocks(activePage.blocks);
+
     if (!editor) {
       const e = BlockNoteEditor.create({
         schema,
-        initialContent: activePage.blocks || [],
+        initialContent: safeBlocks,
       });
 
       setEditor(e);
       return;
     }
 
-    // --- Load page blocks into editor ---
     try {
-      editor.replaceBlocks(editor.document, activePage.blocks || []);
-    } catch (_) {}
-
+      editor.replaceBlocks(editor.document, safeBlocks);
+    } catch (err) {
+      console.error("Failed to replace blocks:", err);
+    }
   }, [activePageId, isLoading]);
 
   return editor;

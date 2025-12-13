@@ -2,9 +2,9 @@
 import { createReactBlockSpec } from "@blocknote/react";
 import type { PropSchema } from "@blocknote/core";
 import { useState, useCallback, useEffect } from "react";
-// FlowBlock.tsx
-import{
-    ReactFlow,
+
+import {
+  ReactFlow,
   Background,
   Controls,
   MiniMap,
@@ -16,89 +16,126 @@ import{
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
-} from "@xyflow/react";         
+} from "@xyflow/react";
+
 import "@xyflow/react/dist/style.css";
 
-/* ---------- prop-schema ---------- */
+/* ------------------------------------------------------------------ */
+/* Prop Schema                                                         */
+/* ------------------------------------------------------------------ */
 const propSchema = {
   flow: {
-    default: JSON.stringify({ nodes: [], edges: [] }),
+    default: JSON.stringify({
+      nodes: [],
+      edges: [],
+    }),
   },
 } satisfies PropSchema;
 
-/* ---------- helper ---------- */
-type FlowData = { nodes: Node[]; edges: Edge[] };
+/* ------------------------------------------------------------------ */
+/* Types                                                              */
+/* ------------------------------------------------------------------ */
+type FlowData = {
+  nodes: Node[];
+  edges: Edge[];
+};
 
-/* ---------- block-spec ---------- */
+/* ------------------------------------------------------------------ */
+/* Block Spec                                                         */
+/* ------------------------------------------------------------------ */
 export const flowBlock = createReactBlockSpec(
   {
-    type: "flow",
+    type: "flow", // ⚠️ must be unique in BlockNote
     propSchema,
     content: "none",
   },
   {
     render: ({ block, editor }) => {
-      /* ---------------------------------
-         local state (mirror of prop)
-      ---------------------------------- */
-      const [{ nodes, edges }, setFlow] = useState<FlowData>(
-        JSON.parse(block.props.flow)
-      );
+      /* -------------------- init state safely -------------------- */
+      const [flow, setFlow] = useState<FlowData>(() => {
+        try {
+          return JSON.parse(block.props.flow);
+        } catch {
+          return { nodes: [], edges: [] };
+        }
+      });
 
-      /* keep local state in sync if prop changes externally */
+      const { nodes, edges } = flow;
+
+      /* -------------------- sync external updates -------------------- */
       useEffect(() => {
-        setFlow(JSON.parse(block.props.flow));
+        try {
+          setFlow(JSON.parse(block.props.flow));
+        } catch {
+          /* ignore corrupted data */
+        }
       }, [block.props.flow]);
 
-      /* ---------------------------------
-         persist helper
-      ---------------------------------- */
+      /* -------------------- persist helper -------------------- */
       const persist = useCallback(
-        (update: Partial<FlowData>) => {
-          const next = { nodes, edges, ...update };
+        (next: FlowData) => {
           editor.updateBlock(block, {
             type: "flow",
-            props: { flow: JSON.stringify(next) },
+            props: {
+              flow: JSON.stringify(next),
+            },
           });
         },
-        [nodes, edges, block, editor]
+        [block, editor]
       );
 
-      /* ---------------------------------
-         React-Flow callbacks
-      ---------------------------------- */
+      /* -------------------- React Flow callbacks -------------------- */
       const onNodesChange: OnNodesChange = useCallback(
         (changes) => {
-          const next = applyNodeChanges(changes, nodes);
-          persist({ nodes: next });
+          setFlow((prev) => {
+            const next = {
+              ...prev,
+              nodes: applyNodeChanges(changes, prev.nodes),
+            };
+            persist(next);
+            return next;
+          });
         },
-        [nodes, persist]
+        [persist]
       );
 
       const onEdgesChange: OnEdgesChange = useCallback(
         (changes) => {
-          const next = applyEdgeChanges(changes, edges);
-          persist({ edges: next });
+          setFlow((prev) => {
+            const next = {
+              ...prev,
+              edges: applyEdgeChanges(changes, prev.edges),
+            };
+            persist(next);
+            return next;
+          });
         },
-        [edges, persist]
+        [persist]
       );
 
       const onConnect: OnConnect = useCallback(
         (connection) => {
-          const next = addEdge(connection, edges);
-          persist({ edges: next });
+          setFlow((prev) => {
+            const next = {
+              ...prev,
+              edges: addEdge(connection, prev.edges),
+            };
+            persist(next);
+            return next;
+          });
         },
-        [edges, persist]
+        [persist]
       );
 
-      /* ---------------------------------
-         UI
-      ---------------------------------- */
+      /* -------------------- UI -------------------- */
       return (
         <div
           style={{
             height: 320,
-            border: "1px solid #333333ff",
+            width: "100%",
+            minWidth: 300,
+            position: "relative",
+            border: "1px solid #333",
             borderRadius: 4,
           }}
         >
