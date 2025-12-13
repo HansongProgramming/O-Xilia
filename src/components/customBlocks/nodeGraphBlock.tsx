@@ -238,7 +238,7 @@ const Wire: React.FC<{
 export const nodeGraphBlock = createReactBlockSpec(
   { type: "node-graph", propSchema, content: "none" },
   {
-    render: ({ block, editor }) => {
+   render: ({ block, editor }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -269,6 +269,7 @@ export const nodeGraphBlock = createReactBlockSpec(
     port: string;
     screen: { x: number; y: number };
   } | null>(null);
+  const [tempEnd, setTempEnd] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const nodesMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -351,18 +352,20 @@ export const nodeGraphBlock = createReactBlockSpec(
     };
     const onUp = () => {
       setDraggingNode(null);
-      sync(); // persist position
+      sync();
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     return () => {
       document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+      document.addEventListener("mouseup", onUp);
     };
   }, [draggingNode, viewport, sync]);
 
-  /* ------------- wire drag ------------- */
+  /* ------------- wire drag (React only) ------------- */
   const [wireHover, setWireHover] = useState<{ node: string; port: string } | null>(null);
+
+  /* live mouse coords for temp wire */
   useEffect(() => {
     if (!wireStart) return;
     const onMove = (e: MouseEvent) => {
@@ -372,9 +375,7 @@ export const nodeGraphBlock = createReactBlockSpec(
       pt.y = e.clientY;
       const ctm = svg.getScreenCTM()?.inverse();
       const { x, y } = ctm ? pt.matrixTransform(ctm) : { x: e.clientX, y: e.clientY };
-      const path = `M${wireStart.screen.x},${wireStart.screen.y} C${wireStart.screen.x + 80},${wireStart.screen.y} ${x - 80},${y} ${x},${y}`;
-      const tmp = svg.querySelector(".wire-tmp") as SVGPathElement | null;
-      if (tmp) tmp.setAttribute("d", path);
+      setTempEnd({ x, y });
     };
     const onUp = () => {
       if (wireHover) {
@@ -386,9 +387,8 @@ export const nodeGraphBlock = createReactBlockSpec(
           sync(nodes, nextConns);
         }
       }
-      svgRef.current!.querySelector(".wire-tmp")?.remove();
       setWireStart(null);
-      setWireHover(null);
+      setTempEnd({ x: 0, y: 0 });
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
@@ -398,13 +398,17 @@ export const nodeGraphBlock = createReactBlockSpec(
     };
   }, [wireStart, wireHover, conns, nodes, sync]);
 
+  /* temp wire path string */
+  const tempWireD = wireStart
+    ? `M${wireStart.screen.x},${wireStart.screen.y} C${wireStart.screen.x + 80},${wireStart.screen.y} ${tempEnd.x - 80},${tempEnd.y} ${tempEnd.x},${tempEnd.y}`
+    : "";
+
   /* ------------- render ------------- */
   return (
     <div
       ref={containerRef}
       onContextMenu={onContext}
       onMouseDown={(e) => {
-        // middle-mouse or space+left = pan
         if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
           setPanning({ startX: e.clientX - viewport.x, startY: e.clientY - viewport.y });
         }
@@ -420,7 +424,7 @@ export const nodeGraphBlock = createReactBlockSpec(
         userSelect: "none",
       }}
     >
-      {/* wires (with arrows) */}
+      {/* wires (finished + temp) – React only */}
       <svg
         ref={svgRef}
         style={{
@@ -452,8 +456,17 @@ export const nodeGraphBlock = createReactBlockSpec(
               </g>
             );
           })}
-          {/* temporary wire while dragging */}
-          {wireStart && <path className="wire-tmp" fill="none" stroke="#33aaff" strokeWidth={2} markerEnd="url(#arrowhead)" />}
+
+          {/* ➊  temp wire – owned by React  */}
+          {wireStart && (
+            <path
+              d={tempWireD}
+              fill="none"
+              stroke="#33aaff"
+              strokeWidth={2}
+              markerEnd="url(#arrowhead)"
+            />
+          )}
         </g>
       </svg>
 
@@ -490,14 +503,7 @@ export const nodeGraphBlock = createReactBlockSpec(
               const x = (n.position.x + n.size.width) * viewport.zoom + viewport.x;
               const y = (n.position.y + n.size.height / 2) * viewport.zoom + viewport.y;
               setWireStart({ node: nodeId, port: port.id, screen: { x, y } });
-              const svg = svgRef.current!;
-              const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-              p.setAttribute("class", "wire-tmp");
-              p.setAttribute("fill", "none");
-              p.setAttribute("stroke", "#33aaff");
-              p.setAttribute("stroke-width", "2");
-              p.setAttribute("marker-end", "url(#arrowhead)");
-              svg.querySelector(".wires")!.appendChild(p);
+              setTempEnd({ x, y }); // start temp at same point
             }}
             onEndNewWire={(nodeId, port) => {
               if (port.type !== "input") return;
