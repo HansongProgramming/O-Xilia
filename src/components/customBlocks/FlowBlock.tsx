@@ -16,6 +16,7 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
+  type XYPosition,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
@@ -40,18 +41,23 @@ type FlowData = {
   edges: Edge[];
 };
 
+type MenuState = {
+  visible: boolean;
+  position: XYPosition;
+};
+
 /* ------------------------------------------------------------------ */
 /* Block Spec                                                         */
 /* ------------------------------------------------------------------ */
 export const flowBlock = createReactBlockSpec(
   {
-    type: "flow", // ⚠️ must be unique in BlockNote
+    type: "flow",
     propSchema,
     content: "none",
   },
   {
     render: ({ block, editor }) => {
-      /* -------------------- init state safely -------------------- */
+      /* -------------------- state -------------------- */
       const [flow, setFlow] = useState<FlowData>(() => {
         try {
           return JSON.parse(block.props.flow);
@@ -60,15 +66,18 @@ export const flowBlock = createReactBlockSpec(
         }
       });
 
+      const [menu, setMenu] = useState<MenuState>({
+        visible: false,
+        position: { x: 0, y: 0 },
+      });
+
       const { nodes, edges } = flow;
 
       /* -------------------- sync external updates -------------------- */
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow));
-        } catch {
-          /* ignore corrupted data */
-        }
+        } catch {}
       }, [block.props.flow]);
 
       /* -------------------- persist helper -------------------- */
@@ -76,9 +85,7 @@ export const flowBlock = createReactBlockSpec(
         (next: FlowData) => {
           editor.updateBlock(block, {
             type: "flow",
-            props: {
-              flow: JSON.stringify(next),
-            },
+            props: { flow: JSON.stringify(next) },
           });
         },
         [block, editor]
@@ -127,6 +134,54 @@ export const flowBlock = createReactBlockSpec(
         [persist]
       );
 
+      /* -------------------- right click -------------------- */
+      const onContextMenu = useCallback(
+        (event: React.MouseEvent) => {
+          event.preventDefault();
+
+          const bounds = (
+            event.currentTarget as HTMLDivElement
+          ).getBoundingClientRect();
+
+          setMenu({
+            visible: true,
+            position: {
+              x: event.clientX - bounds.left,
+              y: event.clientY - bounds.top,
+            },
+          });
+        },
+        []
+      );
+
+      /* -------------------- add node -------------------- */
+      const addNode = useCallback(
+        (kind: string) => {
+          setFlow((prev) => {
+            const newNode: Node = {
+              id: `${kind}-${Date.now()}`,
+              position: menu.position,
+              data: {
+                label: kind.toUpperCase(),
+                kind,
+              },
+              type: "default",
+            };
+
+            const next = {
+              ...prev,
+              nodes: [...prev.nodes, newNode],
+            };
+
+            persist(next);
+            return next;
+          });
+
+          setMenu((m) => ({ ...m, visible: false }));
+        },
+        [menu.position, persist]
+      );
+
       /* -------------------- UI -------------------- */
       return (
         <div
@@ -138,6 +193,8 @@ export const flowBlock = createReactBlockSpec(
             border: "1px solid #333",
             borderRadius: 4,
           }}
+          onContextMenu={onContextMenu}
+          onClick={() => setMenu((m) => ({ ...m, visible: false }))}
         >
           <ReactFlow
             nodes={nodes}
@@ -151,6 +208,48 @@ export const flowBlock = createReactBlockSpec(
             <Controls />
             <Background gap={16} />
           </ReactFlow>
+
+          {/* -------- context menu -------- */}
+          {menu.visible && (
+            <div
+              style={{
+                position: "absolute",
+                top: menu.position.y,
+                left: menu.position.x,
+                background: "#1e1e1e",
+                border: "1px solid #444",
+                borderRadius: 6,
+                padding: 6,
+                zIndex: 10,
+                minWidth: 160,
+              }}
+            >
+              {[
+                ["warning", "⚠ Warning"],
+                ["announcement", "📢 Announcement"],
+                ["todo", "✅ Todo"],
+                ["info", "ℹ Info"],
+              ].map(([kind, label]) => (
+                <div
+                  key={kind}
+                  onClick={() => addNode(kind)}
+                  style={{
+                    padding: "6px 8px",
+                    cursor: "pointer",
+                    borderRadius: 4,
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#333")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     },
