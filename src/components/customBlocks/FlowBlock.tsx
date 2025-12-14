@@ -44,6 +44,7 @@ type FlowData = {
 type MenuState = {
   visible: boolean;
   position: XYPosition;
+  nodeId?: string; // 👈 present only when right-clicking a node
 };
 
 /* ------------------------------------------------------------------ */
@@ -77,7 +78,7 @@ export const flowBlock = createReactBlockSpec(
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow));
-        } catch { }
+        } catch {}
       }, [block.props.flow]);
 
       /* -------------------- persist helper -------------------- */
@@ -134,8 +135,8 @@ export const flowBlock = createReactBlockSpec(
         [persist]
       );
 
-      /* -------------------- right click -------------------- */
-      const onContextMenu = useCallback(
+      /* -------------------- canvas right click -------------------- */
+      const onPaneContextMenu = useCallback(
         (event: React.MouseEvent) => {
           event.preventDefault();
 
@@ -145,6 +146,28 @@ export const flowBlock = createReactBlockSpec(
 
           setMenu({
             visible: true,
+            nodeId: undefined,
+            position: {
+              x: event.clientX - bounds.left,
+              y: event.clientY - bounds.top,
+            },
+          });
+        },
+        []
+      );
+
+      /* -------------------- node right click -------------------- */
+      const onNodeContextMenu = useCallback(
+        (event: React.MouseEvent, node: Node) => {
+          event.preventDefault();
+
+          const bounds = (
+            event.currentTarget as HTMLDivElement
+          ).getBoundingClientRect();
+
+          setMenu({
+            visible: true,
+            nodeId: node.id,
             position: {
               x: event.clientX - bounds.left,
               y: event.clientY - bounds.top,
@@ -159,7 +182,6 @@ export const flowBlock = createReactBlockSpec(
         (kind: string) => {
           const pageId = crypto.randomUUID();
 
-          // 🔹 fire event so App can create a page
           window.dispatchEvent(
             new CustomEvent("flow:create-page", {
               detail: {
@@ -174,11 +196,7 @@ export const flowBlock = createReactBlockSpec(
             const newNode: Node = {
               id: `node-${pageId}`,
               position: menu.position,
-              data: {
-                pageId,
-                title: kind.toUpperCase(),
-                kind,
-              },
+              data: { pageId, title: kind.toUpperCase(), kind },
             };
 
             const next = {
@@ -190,11 +208,39 @@ export const flowBlock = createReactBlockSpec(
             return next;
           });
 
-          setMenu((m) => ({ ...m, visible: false }));
+          setMenu({ visible: false, position: { x: 0, y: 0 } });
         },
         [menu.position, persist]
       );
 
+      /* -------------------- delete node + page -------------------- */
+      const deleteNode = useCallback(() => {
+        if (!menu.nodeId) return;
+
+        setFlow((prev) => {
+          const node = prev.nodes.find((n) => n.id === menu.nodeId);
+
+          if (node?.data?.pageId) {
+            window.dispatchEvent(
+              new CustomEvent("flow:delete-page", {
+                detail: { pageId: node.data.pageId },
+              })
+            );
+          }
+
+          const next = {
+            nodes: prev.nodes.filter((n) => n.id !== menu.nodeId),
+            edges: prev.edges.filter(
+              (e) => e.source !== menu.nodeId && e.target !== menu.nodeId
+            ),
+          };
+
+          persist(next);
+          return next;
+        });
+
+        setMenu({ visible: false, position: { x: 0, y: 0 } });
+      }, [menu.nodeId, persist]);
 
       /* -------------------- UI -------------------- */
       return (
@@ -207,8 +253,7 @@ export const flowBlock = createReactBlockSpec(
             border: "1px solid #333",
             borderRadius: 4,
           }}
-          onContextMenu={onContextMenu}
-          onClick={() => setMenu((m) => ({ ...m, visible: false }))}
+          onClick={() => setMenu({ visible: false, position: { x: 0, y: 0 } })}
         >
           <ReactFlow
             nodes={nodes}
@@ -216,16 +261,17 @@ export const flowBlock = createReactBlockSpec(
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodeDoubleClick={(_, node) => {
+            onPaneContextMenu={onPaneContextMenu}
+            onNodeContextMenu={onNodeContextMenu}
+            onNodeDoubleClick={(_, node) =>
               window.dispatchEvent(
                 new CustomEvent("flow:open-page", {
                   detail: { pageId: node.data.pageId },
                 })
-              );
-            }}
+              )
+            }
             fitView
           >
-
             <MiniMap />
             <Controls />
             <Background gap={16} />
@@ -246,30 +292,38 @@ export const flowBlock = createReactBlockSpec(
                 minWidth: 160,
               }}
             >
-              {[
-                ["warning", "⚠ Warning"],
-                ["announcement", "📢 Announcement"],
-                ["todo", "✅ Todo"],
-                ["info", "ℹ Info"],
-              ].map(([kind, label]) => (
+              {menu.nodeId ? (
                 <div
-                  key={kind}
-                  onClick={() => addNode(kind)}
+                  onClick={deleteNode}
                   style={{
                     padding: "6px 8px",
                     cursor: "pointer",
+                    color: "#ff6b6b",
                     borderRadius: 4,
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#333")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
                 >
-                  {label}
+                  🗑 Delete node & page
                 </div>
-              ))}
+              ) : (
+                [
+                  ["warning", "⚠ Warning"],
+                  ["announcement", "📢 Announcement"],
+                  ["todo", "✅ Todo"],
+                  ["info", "ℹ Info"],
+                ].map(([kind, label]) => (
+                  <div
+                    key={kind}
+                    onClick={() => addNode(kind)}
+                    style={{
+                      padding: "6px 8px",
+                      cursor: "pointer",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {label}
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
