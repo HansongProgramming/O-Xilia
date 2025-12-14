@@ -2,6 +2,7 @@
 import { createReactBlockSpec } from "@blocknote/react";
 import type { PropSchema } from "@blocknote/core";
 import { useState, useCallback, useEffect } from "react";
+import { useRef } from "react";
 
 import {
   ReactFlow,
@@ -32,6 +33,8 @@ const propSchema = {
     }),
   },
 } satisfies PropSchema;
+
+const wrapperRef = useRef<HTMLDivElement>(null);
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -140,9 +143,9 @@ export const flowBlock = createReactBlockSpec(
         (event: React.MouseEvent | MouseEvent) => {
           event.preventDefault();
 
-          const bounds = (
-            event.currentTarget as HTMLDivElement
-          ).getBoundingClientRect();
+          if (!wrapperRef.current) return;
+
+          const bounds = wrapperRef.current.getBoundingClientRect();
 
           setMenu({
             visible: true,
@@ -156,16 +159,14 @@ export const flowBlock = createReactBlockSpec(
         []
       );
 
-
-
       /* -------------------- node right click -------------------- */
       const onNodeContextMenu = useCallback(
         (event: React.MouseEvent | MouseEvent, node: Node) => {
           event.preventDefault();
 
-          const bounds = (
-            event.currentTarget as HTMLDivElement
-          ).getBoundingClientRect();
+          if (!wrapperRef.current) return;
+
+          const bounds = wrapperRef.current.getBoundingClientRect();
 
           setMenu({
             visible: true,
@@ -178,8 +179,6 @@ export const flowBlock = createReactBlockSpec(
         },
         []
       );
-
-
 
       /* -------------------- add node -------------------- */
       const addNode = useCallback(
@@ -249,6 +248,7 @@ export const flowBlock = createReactBlockSpec(
       /* -------------------- UI -------------------- */
       return (
         <div
+          ref={wrapperRef}
           style={{
             height: 320,
             width: "100%",
