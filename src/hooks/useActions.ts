@@ -191,57 +191,33 @@ export function useActions(
 
   // -------------------- FlowBlock integration --------------------
   useEffect(() => {
-    const handleCreatePage = (e: any) => {
+    const handleCreatePage = (e: CustomEvent<{ pageId: string; title: string }>) => {
       const { pageId, title } = e.detail;
       const categoryId = categories[0]?.id;
-      if (!categoryId) return alert("No category available to create a page.");
+      if (!categoryId) return;
 
       createPage(categoryId, pageId, title);
       setActivePageId(pageId);
     };
 
-    const handleOpenPage = (e: any) => {
-      const { pageId } = e.detail;
-      setActivePageId(pageId);
+    const handleOpenPage = (e: CustomEvent<{ pageId: string }>) => {
+      setActivePageId(e.detail.pageId);
     };
 
-    window.addEventListener("flow:create-page", handleCreatePage);
-    window.addEventListener("flow:open-page", handleOpenPage);
+    const handleDeletePage = (e: CustomEvent<{ pageId: string }>) => {
+      deletePage(e.detail.pageId);
+    };
+
+    window.addEventListener("flow:create-page", handleCreatePage as EventListener);
+    window.addEventListener("flow:open-page", handleOpenPage as EventListener);
+    window.addEventListener("flow:delete-page", handleDeletePage as EventListener);
 
     return () => {
-      window.removeEventListener("flow:create-page", handleCreatePage);
-      window.removeEventListener("flow:open-page", handleOpenPage);
+      window.removeEventListener("flow:create-page", handleCreatePage as EventListener);
+      window.removeEventListener("flow:open-page", handleOpenPage as EventListener);
+      window.removeEventListener("flow:delete-page", handleDeletePage as EventListener);
     };
-  }, [categories, createPage, setActivePageId]);
-
-  useEffect(() => {
-  const handleCreatePage = (e: CustomEvent<{ pageId: string; title: string }>) => {
-    const { pageId, title } = e.detail;
-    const categoryId = categories[0]?.id;
-    if (!categoryId) return;
-
-    createPage(categoryId, pageId, title);
-    setActivePageId(pageId);
-  };
-
-  const handleOpenPage = (e: CustomEvent<{ pageId: string }>) => {
-    setActivePageId(e.detail.pageId);
-  };
-
-  const handleDeletePage = (e: CustomEvent<{ pageId: string }>) => {
-    deletePage(e.detail.pageId);
-  };
-
-  window.addEventListener("flow:create-page", handleCreatePage as EventListener);
-  window.addEventListener("flow:open-page", handleOpenPage as EventListener);
-  window.addEventListener("flow:delete-page", handleDeletePage as EventListener);
-
-  return () => {
-    window.removeEventListener("flow:create-page", handleCreatePage as EventListener);
-    window.removeEventListener("flow:open-page", handleOpenPage as EventListener);
-    window.removeEventListener("flow:delete-page", handleDeletePage as EventListener);
-  };
-}, [categories]);
+  }, [categories]);
 
 
   return {
