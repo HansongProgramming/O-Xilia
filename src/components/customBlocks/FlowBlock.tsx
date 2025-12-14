@@ -78,7 +78,7 @@ export const flowBlock = createReactBlockSpec(
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow));
-        } catch {}
+        } catch { }
       }, [block.props.flow]);
 
       /* -------------------- persist helper -------------------- */
@@ -137,7 +137,7 @@ export const flowBlock = createReactBlockSpec(
 
       /* -------------------- canvas right click -------------------- */
       const onPaneContextMenu = useCallback(
-        (event: React.MouseEvent) => {
+        (event: React.MouseEvent | MouseEvent) => {
           event.preventDefault();
 
           const bounds = (
@@ -156,9 +156,11 @@ export const flowBlock = createReactBlockSpec(
         []
       );
 
+
+
       /* -------------------- node right click -------------------- */
       const onNodeContextMenu = useCallback(
-        (event: React.MouseEvent, node: Node) => {
+        (event: React.MouseEvent | MouseEvent, node: Node) => {
           event.preventDefault();
 
           const bounds = (
@@ -176,6 +178,8 @@ export const flowBlock = createReactBlockSpec(
         },
         []
       );
+
+
 
       /* -------------------- add node -------------------- */
       const addNode = useCallback(
