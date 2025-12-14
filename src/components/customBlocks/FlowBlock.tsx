@@ -34,8 +34,6 @@ const propSchema = {
   },
 } satisfies PropSchema;
 
-const wrapperRef = useRef<HTMLDivElement>(null);
-
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -61,6 +59,8 @@ export const flowBlock = createReactBlockSpec(
   },
   {
     render: ({ block, editor }) => {
+      const wrapperRef = useRef<HTMLDivElement>(null);
+
       /* -------------------- state -------------------- */
       const [flow, setFlow] = useState<FlowData>(() => {
         try {
