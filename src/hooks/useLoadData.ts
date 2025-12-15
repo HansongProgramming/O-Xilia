@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { loadDB } from "../lib/storage";
 import type { Category, Page } from "../types";
+import { Icon } from '@iconify/react';
 
 export function useLoadData() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -27,14 +28,14 @@ export function useLoadData() {
             id: uuid(),
             title: "Welcome to O-Xilia",
             blocks: [{ type: "paragraph", content: "Start your first note..." }],
-            icon: "📄",
+            icon: "material-symbols:new-window-rounded",
             categoryId: "default-category",
           };
 
           const defaultCategory: Category = {
             id: "default-category",
             name: "Default",
-            icon: "📁",
+            icon: "material-symbols:new-window-rounded",
             isExpanded: true,
             pages: [defaultPage],
           };
@@ -48,13 +49,13 @@ export function useLoadData() {
           title: "Untitled",
           categoryId: "fallback-category",
           blocks: [{ type: "paragraph", content: "" }],
-          icon: "📄",
+          icon: "material-symbols:new-window-rounded",
         };
 
         const fallbackCategory: Category = {
           id: "fallback-category",
           name: "Default",
-          icon: "📁",
+          icon: "material-symbols:new-window-rounded",
           isExpanded: true,
           pages: [fallbackPage],
         };
