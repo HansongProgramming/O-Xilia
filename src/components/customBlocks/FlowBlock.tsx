@@ -10,7 +10,6 @@ import {
   applyEdgeChanges,
   addEdge,
   type Node,
-  type Edge,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
@@ -23,10 +22,24 @@ import type { MenuState } from "./contextMenu";
 
 import { createNode, removeNodeAndPage } from "./nodes";
 import { FlowContextMenu } from "./contextMenu";
+import {
+  WarningNode,
+  AnnouncementNode,
+  TodoNode,
+  InfoNode,
+} from "./CustomNodes";
 
 // ---------------- Prop Schema ----------------
 const propSchema: PropSchema = {
   flow: { default: JSON.stringify({ nodes: [], edges: [] }) },
+};
+
+// ---------------- Node Types Mapping ----------------
+const nodeTypes = {
+  warning: WarningNode,
+  announcement: AnnouncementNode,
+  todo: TodoNode,
+  info: InfoNode,
 };
 
 export const flowBlock = createReactBlockSpec(
@@ -182,6 +195,7 @@ export const flowBlock = createReactBlockSpec(
           <ReactFlow
             nodes={flow.nodes}
             edges={flow.edges}
+            nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}

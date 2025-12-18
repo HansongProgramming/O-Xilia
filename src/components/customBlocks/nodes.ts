@@ -30,7 +30,7 @@ export const createNode = (kind: NodeKind, position: XYPosition): Node => {
 
   return {
     id: `node-${pageId}`,
-    type: "flow",
+    type: kind,
     position,
     data: { pageId, title: label, kind },
   };

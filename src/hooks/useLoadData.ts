@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { loadDB } from "../lib/storage";
 import type { Category, Page } from "../types";
-import { Icon } from '@iconify/react';
 
 export function useLoadData() {
   const [categories, setCategories] = useState<Category[]>([]);
