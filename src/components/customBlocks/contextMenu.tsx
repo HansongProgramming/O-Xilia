@@ -43,7 +43,7 @@ export const FlowContextMenu = ({
             borderRadius: 4,
           }}
         >
-          🗑 Delete node & page
+          Delete node & page
         </div>
       ) : (
         Object.entries(NODE_TYPES).map(([kind, { label }]) => (
