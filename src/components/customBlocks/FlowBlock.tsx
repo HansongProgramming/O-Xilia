@@ -45,7 +45,7 @@ type FlowData = {
 type MenuState = {
   visible: boolean;
   position: XYPosition;
-  nodeId?: string; // 👈 present only when right-clicking a node
+  nodeId?: string;
 };
 
 /* ------------------------------------------------------------------ */
@@ -81,7 +81,7 @@ export const flowBlock = createReactBlockSpec(
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow));
-        } catch { }
+        } catch {}
       }, [block.props.flow]);
 
       /* -------------------- persist helper -------------------- */
@@ -185,6 +185,7 @@ export const flowBlock = createReactBlockSpec(
         (kind: string) => {
           const pageId = crypto.randomUUID();
 
+          // Fire the event WITHOUT parentPageId
           window.dispatchEvent(
             new CustomEvent("flow:create-page", {
               detail: {
@@ -199,7 +200,11 @@ export const flowBlock = createReactBlockSpec(
             const newNode: Node = {
               id: `node-${pageId}`,
               position: menu.position,
-              data: { pageId, title: kind.toUpperCase(), kind },
+              data: {
+                pageId,
+                title: kind.toUpperCase(),
+                kind,
+              },
             };
 
             const next = {

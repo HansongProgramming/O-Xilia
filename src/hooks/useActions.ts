@@ -18,6 +18,10 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
+  /* ------------------------------------------------------------------ */
+  /* Page + Category Actions                                             */
+  /* ------------------------------------------------------------------ */
+
   const createPage = (categoryId: string, id?: string, title?: string) => {
     const newPage: Page = {
       id: id || uuid(),
@@ -68,7 +72,11 @@ export function useActions(
       (sum, c) => sum + (c.pages?.length || 0),
       0
     );
-    if (totalPages <= 1) return alert("Cannot delete last page.");
+
+    if (totalPages <= 1) {
+      alert("Cannot delete last page.");
+      return;
+    }
 
     setCategories((prev) =>
       prev.map((c) => ({
@@ -78,26 +86,27 @@ export function useActions(
     );
 
     if (activePageId === pageId) {
-      const all = categories
+      const remaining = categories
         .flatMap((c) => c.pages || [])
         .filter((p) => p.id !== pageId);
 
-      if (all[0]) setActivePageId(all[0].id);
+      if (remaining[0]) setActivePageId(remaining[0].id);
     }
   };
 
   const deleteCategory = (catId: string) => {
     setCategories((prev) => {
-      if ((prev || []).length <= 1) {
+      if (prev.length <= 1) {
         alert("Cannot delete the last category");
         return prev;
       }
 
-      const newCats = (prev || []).filter((c) => c.id !== catId);
+      const newCats = prev.filter((c) => c.id !== catId);
 
       const stillExists = newCats
         .flatMap((c) => c.pages || [])
-        .find((p) => p.id === activePageId);
+        .some((p) => p.id === activePageId);
+
       if (!stillExists) {
         const fallback = newCats[0]?.pages?.[0];
         if (fallback) setActivePageId(fallback.id);
@@ -125,8 +134,9 @@ export function useActions(
   const setCategoryFolder = async (categoryId?: string) => {
     const target =
       categoryId ||
-      categories.find((c) => (c.pages || []).some((p) => p.id === activePageId))
-        ?.id;
+      categories.find((c) =>
+        (c.pages || []).some((p) => p.id === activePageId)
+      )?.id;
 
     if (!target) return alert("No category selected.");
 
@@ -137,6 +147,10 @@ export function useActions(
       prev.map((c) => (c.id === target ? { ...c, folderPath: folder } : c))
     );
   };
+
+  /* ------------------------------------------------------------------ */
+  /* Icon Picker                                                         */
+  /* ------------------------------------------------------------------ */
 
   const openIconPicker = (
     ev: React.MouseEvent,
@@ -155,7 +169,12 @@ export function useActions(
       id,
     });
 
-    setContextMenu((s) => ({ ...s, visible: false, type: null, categoryId: null }));
+    setContextMenu((s) => ({
+      ...s,
+      visible: false,
+      type: null,
+      categoryId: null,
+    }));
   };
 
   const onIconSelect = (iconName: string) => {
@@ -189,12 +208,25 @@ export function useActions(
     });
   };
 
-  // -------------------- FlowBlock integration --------------------
+  /* ------------------------------------------------------------------ */
+  /* FlowBlock Integration (FIXED)                                       */
+  /* ------------------------------------------------------------------ */
+
   useEffect(() => {
-    const handleCreatePage = (e: CustomEvent<{ pageId: string; title: string }>) => {
+    const handleCreatePage = (
+      e: CustomEvent<{ pageId: string; title: string }>
+    ) => {
       const { pageId, title } = e.detail;
-      const categoryId = categories[0]?.id;
-      if (!categoryId) return;
+
+      // ✅ derive category from ACTIVE page
+      const categoryId = categories.find((c) =>
+        (c.pages || []).some((p) => p.id === activePageId)
+      )?.id;
+
+      if (!categoryId) {
+        console.warn("FlowBlock: no category found for active page");
+        return;
+      }
 
       createPage(categoryId, pageId, title);
       setActivePageId(pageId);
@@ -208,17 +240,38 @@ export function useActions(
       deletePage(e.detail.pageId);
     };
 
-    window.addEventListener("flow:create-page", handleCreatePage as EventListener);
-    window.addEventListener("flow:open-page", handleOpenPage as EventListener);
-    window.addEventListener("flow:delete-page", handleDeletePage as EventListener);
+    window.addEventListener(
+      "flow:create-page",
+      handleCreatePage as EventListener
+    );
+    window.addEventListener(
+      "flow:open-page",
+      handleOpenPage as EventListener
+    );
+    window.addEventListener(
+      "flow:delete-page",
+      handleDeletePage as EventListener
+    );
 
     return () => {
-      window.removeEventListener("flow:create-page", handleCreatePage as EventListener);
-      window.removeEventListener("flow:open-page", handleOpenPage as EventListener);
-      window.removeEventListener("flow:delete-page", handleDeletePage as EventListener);
+      window.removeEventListener(
+        "flow:create-page",
+        handleCreatePage as EventListener
+      );
+      window.removeEventListener(
+        "flow:open-page",
+        handleOpenPage as EventListener
+      );
+      window.removeEventListener(
+        "flow:delete-page",
+        handleDeletePage as EventListener
+      );
     };
-  }, [categories]);
+  }, [categories, activePageId]);
 
+  /* ------------------------------------------------------------------ */
+  /* Exposed API                                                         */
+  /* ------------------------------------------------------------------ */
 
   return {
     createPage,
