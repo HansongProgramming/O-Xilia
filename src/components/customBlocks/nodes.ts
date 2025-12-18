@@ -1,22 +1,31 @@
-import type { XYPosition, Node } from "@xyflow/react";
+import type { Node, Edge, XYPosition } from "@xyflow/react";
 
-// Define all node types in one place
+// ---------------- Node Types ----------------
 export const NODE_TYPES = {
-  warning: { label: "⚠ Warning", icon: "⚠" },
-  announcement: { label: "📢 Announcement", icon: "📢" },
-  todo: { label: "✅ Todo", icon: "✅" },
-  info: { label: "ℹ Info", icon: "ℹ" },
+  warning: { label: "Warning"},
+  announcement: { label: "Announcement"},
+  todo: { label: "Todo"},
+  info: { label: "Info"},
 } as const;
 
 export type NodeKind = keyof typeof NODE_TYPES;
 
-// Node creation helper
+// ---------------- Flow Data Type ----------------
+export type FlowData = {
+  nodes: Node[];
+  edges: Edge[];
+};
+
+// ---------------- Node Helpers ----------------
 export const createNode = (kind: NodeKind, position: XYPosition): Node => {
   const pageId = crypto.randomUUID();
   const { label } = NODE_TYPES[kind];
 
+  // Dispatch event for new page
   window.dispatchEvent(
-    new CustomEvent("flow:create-page", { detail: { pageId, title: label, kind } })
+    new CustomEvent("flow:create-page", {
+      detail: { pageId, title: label, kind },
+    })
   );
 
   return {
@@ -26,8 +35,7 @@ export const createNode = (kind: NodeKind, position: XYPosition): Node => {
   };
 };
 
-// Node removal helper
-export const removeNodeAndPage = (flow: { nodes: Node[]; edges: any[] }, nodeId: string) => {
+export const removeNodeAndPage = (flow: FlowData, nodeId: string): FlowData => {
   const node = flow.nodes.find((n) => n.id === nodeId);
   if (node?.data?.pageId) {
     window.dispatchEvent(

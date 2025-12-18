@@ -1,9 +1,6 @@
-// FlowBlock.tsx
 import { createReactBlockSpec } from "@blocknote/react";
 import type { PropSchema } from "@blocknote/core";
-import { useState, useCallback, useEffect } from "react";
-import { useRef } from "react";
-
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -17,54 +14,30 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
-  type XYPosition,
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
 
-/* ------------------------------------------------------------------ */
-/* Prop Schema                                                         */
-/* ------------------------------------------------------------------ */
-const propSchema = {
-  flow: {
-    default: JSON.stringify({
-      nodes: [],
-      edges: [],
-    }),
-  },
-} satisfies PropSchema;
+import type { FlowData, NodeKind } from "./nodes";
+import type { MenuState } from "./contextMenu";
 
-/* ------------------------------------------------------------------ */
-/* Types                                                              */
-/* ------------------------------------------------------------------ */
-type FlowData = {
-  nodes: Node[];
-  edges: Edge[];
+import { createNode, removeNodeAndPage } from "./nodes";
+import { FlowContextMenu } from "./contextMenu";
+
+// ---------------- Prop Schema ----------------
+const propSchema: PropSchema = {
+  flow: { default: JSON.stringify({ nodes: [], edges: [] }) },
 };
 
-type MenuState = {
-  visible: boolean;
-  position: XYPosition;
-  nodeId?: string;
-};
-
-/* ------------------------------------------------------------------ */
-/* Block Spec                                                         */
-/* ------------------------------------------------------------------ */
 export const flowBlock = createReactBlockSpec(
-  {
-    type: "flow",
-    propSchema,
-    content: "none",
-  },
+  { type: "flow", propSchema, content: "none" },
   {
     render: ({ block, editor }) => {
       const wrapperRef = useRef<HTMLDivElement>(null);
 
-      /* -------------------- state -------------------- */
       const [flow, setFlow] = useState<FlowData>(() => {
         try {
-          return JSON.parse(block.props.flow);
+          return JSON.parse(block.props.flow || "{}");
         } catch {
           return { nodes: [], edges: [] };
         }
@@ -75,36 +48,31 @@ export const flowBlock = createReactBlockSpec(
         position: { x: 0, y: 0 },
       });
 
-      const { nodes, edges } = flow;
+      // ---------------- Persist helper ----------------
+      const persist = useCallback((nextFlow: FlowData) => {
+        editor.updateBlock(block, {
+          type: "flow",
+          props: { flow: JSON.stringify(nextFlow) } as unknown as typeof block.props,
+        });
+      }, [block, editor]);
 
-      /* -------------------- sync external updates -------------------- */
+      // ---------------- Sync external updates ----------------
       useEffect(() => {
         try {
-          setFlow(JSON.parse(block.props.flow));
+          setFlow(JSON.parse(block.props.flow || "{}"));
         } catch {}
       }, [block.props.flow]);
 
-      /* -------------------- persist helper -------------------- */
-      const persist = useCallback(
-        (next: FlowData) => {
-          editor.updateBlock(block, {
-            type: "flow",
-            props: { flow: JSON.stringify(next) },
-          });
-        },
-        [block, editor]
-      );
-
-      /* -------------------- React Flow callbacks -------------------- */
+      // ---------------- React Flow Callbacks ----------------
       const onNodesChange: OnNodesChange = useCallback(
         (changes) => {
-          setFlow((prev) => {
-            const next = {
-              ...prev,
-              nodes: applyNodeChanges(changes, prev.nodes),
+          setFlow((prevFlow) => {
+            const nextFlow: FlowData = {
+              ...prevFlow,
+              nodes: applyNodeChanges(changes, prevFlow.nodes),
             };
-            persist(next);
-            return next;
+            persist(nextFlow);
+            return nextFlow;
           });
         },
         [persist]
@@ -112,13 +80,13 @@ export const flowBlock = createReactBlockSpec(
 
       const onEdgesChange: OnEdgesChange = useCallback(
         (changes) => {
-          setFlow((prev) => {
-            const next = {
-              ...prev,
-              edges: applyEdgeChanges(changes, prev.edges),
+          setFlow((prevFlow) => {
+            const nextFlow: FlowData = {
+              ...prevFlow,
+              edges: applyEdgeChanges(changes, prevFlow.edges),
             };
-            persist(next);
-            return next;
+            persist(nextFlow);
+            return nextFlow;
           });
         },
         [persist]
@@ -126,30 +94,26 @@ export const flowBlock = createReactBlockSpec(
 
       const onConnect: OnConnect = useCallback(
         (connection) => {
-          setFlow((prev) => {
-            const next = {
-              ...prev,
-              edges: addEdge(connection, prev.edges),
+          setFlow((prevFlow) => {
+            const nextFlow: FlowData = {
+              ...prevFlow,
+              edges: addEdge(connection, prevFlow.edges),
             };
-            persist(next);
-            return next;
+            persist(nextFlow);
+            return nextFlow;
           });
         },
         [persist]
       );
 
-      /* -------------------- canvas right click -------------------- */
+      // ---------------- Context Menu ----------------
       const onPaneContextMenu = useCallback(
-        (event: React.MouseEvent | MouseEvent) => {
+        (event: MouseEvent | React.MouseEvent) => {
           event.preventDefault();
-
           if (!wrapperRef.current) return;
-
           const bounds = wrapperRef.current.getBoundingClientRect();
-
           setMenu({
             visible: true,
-            nodeId: undefined,
             position: {
               x: event.clientX - bounds.left,
               y: event.clientY - bounds.top,
@@ -159,15 +123,11 @@ export const flowBlock = createReactBlockSpec(
         []
       );
 
-      /* -------------------- node right click -------------------- */
       const onNodeContextMenu = useCallback(
-        (event: React.MouseEvent | MouseEvent, node: Node) => {
+        (event: MouseEvent | React.MouseEvent, node: Node) => {
           event.preventDefault();
-
           if (!wrapperRef.current) return;
-
           const bounds = wrapperRef.current.getBoundingClientRect();
-
           setMenu({
             visible: true,
             nodeId: node.id,
@@ -180,77 +140,32 @@ export const flowBlock = createReactBlockSpec(
         []
       );
 
-      /* -------------------- add node -------------------- */
-      const addNode = useCallback(
-        (kind: string) => {
-          const pageId = crypto.randomUUID();
-
-          // Fire the event WITHOUT parentPageId
-          window.dispatchEvent(
-            new CustomEvent("flow:create-page", {
-              detail: {
-                pageId,
-                title: kind.toUpperCase(),
-                kind,
-              },
-            })
-          );
-
-          setFlow((prev) => {
-            const newNode: Node = {
-              id: `node-${pageId}`,
-              position: menu.position,
-              data: {
-                pageId,
-                title: kind.toUpperCase(),
-                kind,
-              },
+      const addNodeHandler = useCallback(
+        (kind: NodeKind) => {
+          setFlow((prevFlow) => {
+            const nextFlow: FlowData = {
+              ...prevFlow,
+              nodes: [...prevFlow.nodes, createNode(kind, menu.position)],
             };
-
-            const next = {
-              ...prev,
-              nodes: [...prev.nodes, newNode],
-            };
-
-            persist(next);
-            return next;
+            persist(nextFlow);
+            return nextFlow;
           });
-
           setMenu({ visible: false, position: { x: 0, y: 0 } });
         },
         [menu.position, persist]
       );
 
-      /* -------------------- delete node + page -------------------- */
-      const deleteNode = useCallback(() => {
+      const deleteNodeHandler = useCallback(() => {
         if (!menu.nodeId) return;
-
-        setFlow((prev) => {
-          const node = prev.nodes.find((n) => n.id === menu.nodeId);
-
-          if (node?.data?.pageId) {
-            window.dispatchEvent(
-              new CustomEvent("flow:delete-page", {
-                detail: { pageId: node.data.pageId },
-              })
-            );
-          }
-
-          const next = {
-            nodes: prev.nodes.filter((n) => n.id !== menu.nodeId),
-            edges: prev.edges.filter(
-              (e) => e.source !== menu.nodeId && e.target !== menu.nodeId
-            ),
-          };
-
-          persist(next);
-          return next;
+        setFlow((prevFlow) => {
+          const nextFlow = removeNodeAndPage(prevFlow, menu.nodeId!);
+          persist(nextFlow);
+          return nextFlow;
         });
-
         setMenu({ visible: false, position: { x: 0, y: 0 } });
       }, [menu.nodeId, persist]);
 
-      /* -------------------- UI -------------------- */
+      // ---------------- Render ----------------
       return (
         <div
           ref={wrapperRef}
@@ -265,14 +180,14 @@ export const flowBlock = createReactBlockSpec(
           onClick={() => setMenu({ visible: false, position: { x: 0, y: 0 } })}
         >
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={flow.nodes}
+            edges={flow.edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onPaneContextMenu={onPaneContextMenu}
             onNodeContextMenu={onNodeContextMenu}
-            onNodeDoubleClick={(_, node) =>
+            onNodeDoubleClick={(_, node: Node) =>
               window.dispatchEvent(
                 new CustomEvent("flow:open-page", {
                   detail: { pageId: node.data.pageId },
@@ -286,55 +201,11 @@ export const flowBlock = createReactBlockSpec(
             <Background gap={16} />
           </ReactFlow>
 
-          {/* -------- context menu -------- */}
-          {menu.visible && (
-            <div
-              style={{
-                position: "absolute",
-                top: menu.position.y,
-                left: menu.position.x,
-                background: "#1e1e1e",
-                border: "1px solid #444",
-                borderRadius: 6,
-                padding: 6,
-                zIndex: 10,
-                minWidth: 160,
-              }}
-            >
-              {menu.nodeId ? (
-                <div
-                  onClick={deleteNode}
-                  style={{
-                    padding: "6px 8px",
-                    cursor: "pointer",
-                    color: "#ff6b6b",
-                    borderRadius: 4,
-                  }}
-                >
-                  🗑 Delete node & page
-                </div>
-              ) : (
-                [
-                  ["warning", "⚠ Warning"],
-                  ["announcement", "📢 Announcement"],
-                  ["todo", "✅ Todo"],
-                  ["info", "ℹ Info"],
-                ].map(([kind, label]) => (
-                  <div
-                    key={kind}
-                    onClick={() => addNode(kind)}
-                    style={{
-                      padding: "6px 8px",
-                      cursor: "pointer",
-                      borderRadius: 4,
-                    }}
-                  >
-                    {label}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          <FlowContextMenu
+            menu={menu}
+            addNode={addNodeHandler}
+            deleteNode={deleteNodeHandler}
+          />
         </div>
       );
     },
