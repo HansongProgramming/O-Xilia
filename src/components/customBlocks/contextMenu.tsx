@@ -1,4 +1,3 @@
-import React from "react";
 import { NODE_TYPES, type NodeKind } from "./nodes";
 import type { XYPosition } from "@xyflow/react";
 
