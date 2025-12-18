@@ -170,9 +170,9 @@ export const flowBlock = createReactBlockSpec(
         <div
           ref={wrapperRef}
           style={{
-            height: 320,
+            height: 520,
             width: "100%",
-            minWidth: 300,
+            minWidth: 500,
             position: "relative",
             border: "1px solid #333",
             borderRadius: 4,
