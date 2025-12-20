@@ -140,9 +140,8 @@ export function useActions(
   const setCategoryFolder = async (categoryId?: string) => {
     const target =
       categoryId ||
-      categories.find((c) =>
-        (c.pages || []).some((p) => p.id === activePageId)
-      )?.id;
+      categories.find((c) => (c.pages || []).some((p) => p.id === activePageId))
+        ?.id;
 
     if (!target) return alert("No category selected.");
 
@@ -188,9 +187,7 @@ export function useActions(
 
     if (iconPicker.forType === "category") {
       setCategories((prev) =>
-        prev.map((c) =>
-          c.id === iconPicker.id ? { ...c, icon: iconName } : c
-        )
+        prev.map((c) => (c.id === iconPicker.id ? { ...c, icon: iconName } : c))
       );
     }
 
@@ -256,10 +253,7 @@ export function useActions(
       "flow:create-page",
       handleCreatePage as EventListener
     );
-    window.addEventListener(
-      "flow:open-page",
-      handleOpenPage as EventListener
-    );
+    window.addEventListener("flow:open-page", handleOpenPage as EventListener);
     window.addEventListener(
       "flow:delete-page",
       handleDeletePage as EventListener
