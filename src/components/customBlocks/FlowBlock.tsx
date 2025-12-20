@@ -155,14 +155,26 @@
   
         const addNodeHandler = useCallback(
           (kind: NodeKind) => {
+            const newNode = createNode(kind, menu.position);
             setFlow((prevFlow) => {
               const nextFlow: FlowData = {
                 ...prevFlow,
-                nodes: [...prevFlow.nodes, createNode(kind, menu.position)],
+                nodes: [...prevFlow.nodes, newNode],
               };
               persist(nextFlow);
               return nextFlow;
             });
+
+            window.dispatchEvent(
+              new CustomEvent("flow:create-page", {
+                detail: {
+                  pageId: (newNode.data as any).pageId,
+                  title: (newNode.data as any).title,
+                  kind,
+                },
+              })
+            );
+
             setMenu({ visible: false, position: { x: 0, y: 0 } });
           },
           [menu.position, persist]
