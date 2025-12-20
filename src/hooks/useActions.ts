@@ -57,6 +57,12 @@ export function useActions(
   const updatePageTitle = (title: string) => {
     if (!activePageId) return;
 
+    console.log("🚀 updatePageTitle CALLED:", {
+      activePageId,
+      title,
+      timestamp: new Date().toISOString(),
+    });
+
     setCategories((prev) =>
       prev.map((cat) => ({
         ...cat,
@@ -66,11 +72,56 @@ export function useActions(
       }))
     );
 
+    console.log("📡 DISPATCHING flow:update-page-title event");
     window.dispatchEvent(
       new CustomEvent("flow:update-page-title", {
         detail: { pageId: activePageId, title },
       })
     );
+  };
+
+  const handleCreatePage = (
+    e: CustomEvent<{ pageId: string; title: string }>
+  ) => {
+    const { pageId, title } = e.detail;
+
+    console.log("🔄 handleCreatePage TRIGGERED:", {
+      flowPageId: pageId,
+      title,
+      activePageId, // Log current active page
+      allPageIds: categories.flatMap((c) => c.pages?.map((p) => p.id) || []), // Log all existing page IDs
+    });
+
+    // Check if page already exists
+    const pageExists = categories.some((c) =>
+      (c.pages || []).some((p) => p.id === pageId)
+    );
+
+    if (pageExists) {
+      console.log("⚠️ Page already exists, skipping:", pageId);
+      return;
+    }
+
+    // ✅ derive category from ACTIVE page
+    const categoryId = categories.find((c) =>
+      (c.pages || []).some((p) => p.id === activePageId)
+    )?.id;
+
+    if (!categoryId) {
+      console.warn("❌ FlowBlock: no category found for active page");
+      return;
+    }
+
+    console.log("✅ Creating page with matching ID:", {
+      pageId,
+      categoryId,
+      "Will call createPage with": { categoryId, id: pageId, title },
+    });
+
+    createPage(categoryId, pageId, title);
+    setActivePageId(pageId);
+
+    console.log("🎉 Page creation complete, new activePageId:", pageId);
   };
 
   const deletePage = (pageId: string) => {
@@ -140,9 +191,8 @@ export function useActions(
   const setCategoryFolder = async (categoryId?: string) => {
     const target =
       categoryId ||
-      categories.find((c) =>
-        (c.pages || []).some((p) => p.id === activePageId)
-      )?.id;
+      categories.find((c) => (c.pages || []).some((p) => p.id === activePageId))
+        ?.id;
 
     if (!target) return alert("No category selected.");
 
@@ -188,9 +238,7 @@ export function useActions(
 
     if (iconPicker.forType === "category") {
       setCategories((prev) =>
-        prev.map((c) =>
-          c.id === iconPicker.id ? { ...c, icon: iconName } : c
-        )
+        prev.map((c) => (c.id === iconPicker.id ? { ...c, icon: iconName } : c))
       );
     }
 
@@ -256,10 +304,7 @@ export function useActions(
       "flow:create-page",
       handleCreatePage as EventListener
     );
-    window.addEventListener(
-      "flow:open-page",
-      handleOpenPage as EventListener
-    );
+    window.addEventListener("flow:open-page", handleOpenPage as EventListener);
     window.addEventListener(
       "flow:delete-page",
       handleDeletePage as EventListener
