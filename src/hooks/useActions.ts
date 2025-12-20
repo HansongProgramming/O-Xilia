@@ -218,6 +218,12 @@ export function useActions(
     ) => {
       const { pageId, title } = e.detail;
 
+      // Check if page already exists
+      const pageExists = categories.some((c) =>
+        (c.pages || []).some((p) => p.id === pageId)
+      );
+      if (pageExists) return;
+
       // ✅ derive category from ACTIVE page
       const categoryId = categories.find((c) =>
         (c.pages || []).some((p) => p.id === activePageId)
