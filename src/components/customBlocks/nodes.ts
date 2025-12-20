@@ -21,13 +21,6 @@ export const createNode = (kind: NodeKind, position: XYPosition): Node => {
   const pageId = crypto.randomUUID();
   const { label } = NODE_TYPES[kind];
 
-  // Dispatch event for new page
-  window.dispatchEvent(
-    new CustomEvent("flow:create-page", {
-      detail: { pageId, title: label, kind },
-    })
-  );
-
   return {
     id: `node-${pageId}`,
     type: kind,
