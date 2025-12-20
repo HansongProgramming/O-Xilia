@@ -65,6 +65,12 @@ export function useActions(
         ),
       }))
     );
+
+    window.dispatchEvent(
+      new CustomEvent("flow:update-page-title", {
+        detail: { pageId: activePageId, title },
+      })
+    );
   };
 
   const deletePage = (pageId: string) => {

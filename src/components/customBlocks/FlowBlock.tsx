@@ -75,6 +75,40 @@
             setFlow(JSON.parse(block.props.flow || "{}"));
           } catch {}
         }, [block.props.flow]);
+
+        // ---------------- Listen for page title updates ----------------
+        useEffect(() => {
+          const handlePageTitleUpdate = (
+            e: CustomEvent<{ pageId: string; title: string }>
+          ) => {
+            const { pageId, title } = e.detail;
+            setFlow((prevFlow) => {
+              const updatedNodes = prevFlow.nodes.map((node) =>
+                (node.data as any).pageId === pageId
+                  ? { ...node, data: { ...node.data, title } }
+                  : node
+              );
+              if (JSON.stringify(updatedNodes) !== JSON.stringify(prevFlow.nodes)) {
+                const nextFlow = { ...prevFlow, nodes: updatedNodes };
+                persist(nextFlow);
+                return nextFlow;
+              }
+              return prevFlow;
+            });
+          };
+
+          window.addEventListener(
+            "flow:update-page-title",
+            handlePageTitleUpdate as EventListener
+          );
+
+          return () => {
+            window.removeEventListener(
+              "flow:update-page-title",
+              handlePageTitleUpdate as EventListener
+            );
+          };
+        }, [persist]);
   
         // ---------------- React Flow Callbacks ----------------
         const onNodesChange: OnNodesChange = useCallback(
