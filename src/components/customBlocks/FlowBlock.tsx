@@ -29,12 +29,10 @@ import {
   InfoNode,
 } from "./CustomNodes";
 
-// ---------------- Prop Schema ----------------
 const propSchema: PropSchema = {
   flow: { default: JSON.stringify({ nodes: [], edges: [] }) },
 };
 
-// ---------------- Node Types Mapping ----------------
 const nodeTypes = {
   warning: WarningNode,
   announcement: AnnouncementNode,
@@ -61,7 +59,6 @@ export const flowBlock = createReactBlockSpec(
         position: { x: 0, y: 0 },
       });
 
-      // ---------------- Persist helper ----------------
       const persist = useCallback(
         (nextFlow: FlowData) => {
           editor.updateBlock(block, {
@@ -74,23 +71,16 @@ export const flowBlock = createReactBlockSpec(
         [block, editor]
       );
 
-      // ---------------- Sync external updates ----------------
       useEffect(() => {
         try {
           setFlow(JSON.parse(block.props.flow || "{}"));
         } catch {}
       }, [block.props.flow]);
 
-      // ---------------- Listen for page title updates ----------------
-      // Inside your component, add this useEffect:
       useEffect(() => {
-        console.log("FlowBlock mounted, listening for title updates");
-
         const handlePageTitleUpdate = (
           e: CustomEvent<{ pageId: string; title: string }>
         ) => {
-          console.log("FlowBlock received title update:", e.detail);
-
           const { pageId, title } = e.detail;
           setFlow((prevFlow) => {
             const updatedNodes = prevFlow.nodes.map((node) => {
@@ -104,14 +94,9 @@ export const flowBlock = createReactBlockSpec(
               return node;
             });
 
-            if (
-              JSON.stringify(updatedNodes) !== JSON.stringify(prevFlow.nodes)
-            ) {
-              const nextFlow = { ...prevFlow, nodes: updatedNodes };
-              persist(nextFlow);
-              return nextFlow;
-            }
-            return prevFlow;
+            const nextFlow = { ...prevFlow, nodes: updatedNodes };
+            persist(nextFlow);
+            return nextFlow;
           });
         };
 
@@ -126,9 +111,8 @@ export const flowBlock = createReactBlockSpec(
             handlePageTitleUpdate as EventListener
           );
         };
-      }, [persist]); // Make sure this runs when persist changes
+      }, []);
 
-      // ---------------- React Flow Callbacks ----------------
       const onNodesChange: OnNodesChange = useCallback(
         (changes) => {
           setFlow((prevFlow) => {
@@ -171,7 +155,6 @@ export const flowBlock = createReactBlockSpec(
         [persist]
       );
 
-      // ---------------- Context Menu ----------------
       const onPaneContextMenu = useCallback(
         (event: MouseEvent | React.MouseEvent) => {
           event.preventDefault();
@@ -205,41 +188,32 @@ export const flowBlock = createReactBlockSpec(
         []
       );
 
-     const addNodeHandler = useCallback(
-  (kind: NodeKind) => {
-    const newNode = createNode(kind, menu.position);
-    
-    console.log("🧩 Creating new flow node:", {
-      nodeId: newNode.id,
-      pageId: (newNode.data as any).pageId,
-      title: (newNode.data as any).title,
-      kind
-    });
+      const addNodeHandler = useCallback(
+        (kind: NodeKind) => {
+          const newNode = createNode(kind, menu.position);
+          setFlow((prevFlow) => {
+            const nextFlow: FlowData = {
+              ...prevFlow,
+              nodes: [...prevFlow.nodes, newNode],
+            };
+            persist(nextFlow);
+            return nextFlow;
+          });
 
-    setFlow((prevFlow) => {
-      const nextFlow: FlowData = {
-        ...prevFlow,
-        nodes: [...prevFlow.nodes, newNode],
-      };
-      persist(nextFlow);
-      return nextFlow;
-    });
+          window.dispatchEvent(
+            new CustomEvent("flow:create-page", {
+              detail: {
+                pageId: (newNode.data as any).pageId,
+                title: (newNode.data as any).title,
+                kind,
+              },
+            })
+          );
 
-    console.log("📤 Dispatching flow:create-page event");
-    window.dispatchEvent(
-      new CustomEvent("flow:create-page", {
-        detail: {
-          pageId: (newNode.data as any).pageId,
-          title: (newNode.data as any).title,
-          kind,
+          setMenu({ visible: false, position: { x: 0, y: 0 } });
         },
-      })
-    );
-
-    setMenu({ visible: false, position: { x: 0, y: 0 } });
-  },
-  [menu.position, persist]
-);
+        [menu.position, persist]
+      );
 
       const deleteNodeHandler = useCallback(() => {
         if (!menu.nodeId) return;
@@ -251,7 +225,6 @@ export const flowBlock = createReactBlockSpec(
         setMenu({ visible: false, position: { x: 0, y: 0 } });
       }, [menu.nodeId, persist]);
 
-      // ---------------- Render ----------------
       return (
         <div
           ref={wrapperRef}

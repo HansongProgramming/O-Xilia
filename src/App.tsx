@@ -109,25 +109,6 @@ export default function App() {
                 value={activePage.title}
                 onChange={(e) => {
                   actions.updatePageTitle(e.target.value);
-
-                  window.dispatchEvent(
-                    new CustomEvent("flow:update-page-title", {
-                      detail: {
-                        pageId: activePage.id,
-                        title: e.target.value,
-                      },
-                    })
-                  );
-                }}
-                onBlur={(e) => {
-                  window.dispatchEvent(
-                    new CustomEvent("flow:update-page-title", {
-                      detail: {
-                        pageId: activePage.id,
-                        title: e.target.value,
-                      },
-                    })
-                  );
                 }}
               />
             </div>
