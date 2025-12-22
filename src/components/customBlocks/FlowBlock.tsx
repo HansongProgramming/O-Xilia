@@ -83,6 +83,12 @@ export const flowBlock = createReactBlockSpec(
         ) => {
           const { pageId, title } = e.detail;
           setFlow((prevFlow) => {
+            const hasMatch = prevFlow.nodes.some(
+              (node) => (node.data as any).pageId === pageId
+            );
+
+            if (!hasMatch) return prevFlow;
+
             const updatedNodes = prevFlow.nodes.map((node) => {
               const nodeData = node.data as any;
               if (nodeData.pageId === pageId) {
@@ -95,7 +101,11 @@ export const flowBlock = createReactBlockSpec(
             });
 
             const nextFlow = { ...prevFlow, nodes: updatedNodes };
-            persist(nextFlow);
+
+            setTimeout(() => {
+              persist(nextFlow);
+            }, 0);
+
             return nextFlow;
           });
         };

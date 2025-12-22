@@ -17,7 +17,7 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
-  const createPage = (categoryId: string, id?: string, title?: string) => {
+  const createPage = (categoryId: string, id?: string, title?: string, switchTo?: boolean) => {
     const newPage: Page = {
       id: id || uuid(),
       title: title || "Untitled",
@@ -34,7 +34,7 @@ export function useActions(
       )
     );
 
-    setActivePageId(newPage.id);
+    if (switchTo) setActivePageId(newPage.id);
   };
 
   const createCategory = () => {
@@ -224,8 +224,7 @@ export function useActions(
         return;
       }
 
-      createPage(categoryId, pageId, title);
-      setTimeout(() => setActivePageId(pageId), 0);
+      createPage(categoryId, pageId, title, false);
     };
 
     const handleOpenPage = (e: CustomEvent<{ pageId: string }>) => {
