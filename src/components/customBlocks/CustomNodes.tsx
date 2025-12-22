@@ -49,7 +49,7 @@ const BaseNode = memo(({ data }: NodeProps) => {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={Position.Left} />
 
       <div
         style={{
@@ -74,7 +74,7 @@ const BaseNode = memo(({ data }: NodeProps) => {
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={Position.Right} />
     </>
   );
 });
