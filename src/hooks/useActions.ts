@@ -211,7 +211,10 @@ export function useActions(
       const pageExists = categories.some((c) =>
         (c.pages || []).some((p) => p.id === pageId)
       );
-      if (pageExists) return;
+      if (pageExists) {
+        setActivePageId(pageId);
+        return;
+      }
 
       const categoryId = categories.find((c) =>
         (c.pages || []).some((p) => p.id === activePageId)
@@ -222,7 +225,7 @@ export function useActions(
       }
 
       createPage(categoryId, pageId, title);
-      setActivePageId(pageId);
+      setTimeout(() => setActivePageId(pageId), 0);
     };
 
     const handleOpenPage = (e: CustomEvent<{ pageId: string }>) => {

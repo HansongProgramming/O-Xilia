@@ -111,7 +111,7 @@ export const flowBlock = createReactBlockSpec(
             handlePageTitleUpdate as EventListener
           );
         };
-      }, []);
+      }, [persist]);
 
       const onNodesChange: OnNodesChange = useCallback(
         (changes) => {
