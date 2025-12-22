@@ -17,7 +17,7 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
-  const createPage = (categoryId: string, id?: string, title?: string) => {
+  const createPage = (categoryId: string, id?: string, title?: string, switchTo?: boolean) => {
     const newPage: Page = {
       id: id || uuid(),
       title: title || "Untitled",
@@ -34,7 +34,7 @@ export function useActions(
       )
     );
 
-    setActivePageId(newPage.id);
+    if (switchTo) setActivePageId(newPage.id);
   };
 
   const createCategory = () => {
@@ -211,7 +211,10 @@ export function useActions(
       const pageExists = categories.some((c) =>
         (c.pages || []).some((p) => p.id === pageId)
       );
-      if (pageExists) return;
+      if (pageExists) {
+        setActivePageId(pageId);
+        return;
+      }
 
       const categoryId = categories.find((c) =>
         (c.pages || []).some((p) => p.id === activePageId)
@@ -221,8 +224,7 @@ export function useActions(
         return;
       }
 
-      createPage(categoryId, pageId, title);
-      setActivePageId(pageId);
+      createPage(categoryId, pageId, title, false);
     };
 
     const handleOpenPage = (e: CustomEvent<{ pageId: string }>) => {
