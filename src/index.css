@@ -73,7 +73,7 @@ body{
 }
 .sidebar-header{
   display:flex;align-items:center;gap:.5rem;
-  padding-bottom:.4rem;margin-bottom:5rem;
+  padding-bottom:.1rem;margin-bottom:2rem;
   border-bottom:1px solid var(--border);
 }
 .sidebar-header h2{font-size:1rem;font-weight:600;color:var(--text0)}
