@@ -167,3 +167,34 @@ body{
   .category-header{font-size:2rem}
   .page-item{padding:.5rem 1rem}
 }
+
+.category-header {
+  transition: all 0.3s ease;
+}
+
+.pages-container {
+  overflow: hidden;
+  transition: 
+    max-height 0.3s ease,
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.category:not(.expanded) .pages-container {
+  opacity: 0;
+  max-height: 0 !important;
+  transform: translateY(-10px);
+  visibility: hidden;
+}
+
+.category.expanded .pages-container {
+  opacity: 1;
+  max-height: 1000px;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.page-item {
+  transition: all 0.1s ease;
+  margin-top: 2px;
+}

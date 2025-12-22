@@ -29,7 +29,7 @@ export default function CategoryItem({
   setContextMenu,
 }: CategoryItemProps) {
   return (
-    <div className="category">
+    <div className={`category ${category.isExpanded ? 'expanded' : ''}`}>
       <div
         className="category-header"
         onContextMenu={(e) => {
@@ -43,14 +43,17 @@ export default function CategoryItem({
           });
         }}
       >
-
         <button
           className="icon-button category-icon"
           onClick={(ev) => openIconPicker(ev, "category", category.id)}
         >
-          <Icon icon={`ic:${category.icon}` || "mdi:folder" } width="20" height="20" />
-          
+          <Icon 
+            icon={category.icon ? `ic:${category.icon}` : "mdi:folder"} 
+            width="20" 
+            height="20" 
+          />
         </button>
+        
         <input
           type="text"
           className="category-name-input"
@@ -61,11 +64,17 @@ export default function CategoryItem({
         <button
           className="category-toggle"
           onClick={() => toggleCategoryExpanded(category.id)}
+          aria-label={category.isExpanded ? "Collapse category" : "Expand category"}
         >
-          {category.isExpanded ? <Icon icon="line-md:chevron-small-down" width="20" height="20" /> : <Icon icon="ic:round-chevron-left" width="20" height="20" />}
+          {category.isExpanded ? (
+            <Icon icon="line-md:chevron-small-down" width="20" height="20" />
+          ) : (
+            <Icon icon="ic:round-chevron-left" width="20" height="20" />
+          )}
         </button>
       </div>
-      {category.isExpanded && (
+      
+      <div className="pages-container">
         <div className="pages-list">
           {category.pages?.map((page) => (
             <PageItem
@@ -78,7 +87,7 @@ export default function CategoryItem({
             />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
