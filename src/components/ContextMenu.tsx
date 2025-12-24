@@ -1,12 +1,19 @@
 import React from "react";
 import type { ContextMenuState } from "../types";
 import { Icon } from '@iconify/react';
+import type { PageType } from "../types";
 
 interface ContextMenusProps {
   contextMenu: ContextMenuState;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
   createCategory: () => void;
-  createPage: (categoryId: string) => void;
+  createPage: (
+    categoryId: string,
+    id?: string,
+    title?: string,
+    switchTo?: boolean,
+    type?: PageType
+  ) => void;
   deleteCategory: (categoryId: string) => void;
   updateCategoryName: (categoryId: string, newName: string) => void;
   setCategoryFolder: (categoryId: string) => void | Promise<void>;
@@ -40,58 +47,66 @@ export default function ContextMenus({
   };
 
   if (contextMenu.type === "category")
-    return (
-      <div
-        className="context-menu"
-        style={position}
-        onClick={(e) => e.stopPropagation()}
+  return (
+    <div
+      className="context-menu"
+      style={position}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={() => {
+          createPage(contextMenu.categoryId!); 
+          close();
+        }}
       >
-        <button
-          onClick={() => {
-            createPage(contextMenu.categoryId!);
-            close();
-          }}
-        >
-          <Icon icon="material-symbols:new-window-rounded" width="24" height="24" color="#fff" />
-          Add Page
-        </button>
+        <Icon icon="material-symbols:new-window-rounded" width="24" height="24" color="#fff" />
+        Add Page
+      </button>
 
-        <button
-          onClick={() => {
-            const newName = prompt("Rename category:");
-            if (newName) updateCategoryName(contextMenu.categoryId!, newName);
-            close();
-          }}
-        >
-          <Icon icon="qlementine-icons:rename-16" width="24" height="24" color="#fff" />
-          Rename
-        </button>
+      <button
+        onClick={() => {
+          createPage(contextMenu.categoryId!, undefined, undefined, true, "channel");
+          close();
+        }}
+      >
+        <Icon icon="material-symbols:videocam-outline" width="24" height="24" color="#fff" />
+        Add Channel
+      </button>
 
-        <button
-          onClick={() => {
-            deleteCategory(contextMenu.categoryId!);
-            close();
-          }}
-        >
-          <Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" color="#fff" />
+      <button
+        onClick={() => {
+          const newName = prompt("Rename category:");
+          if (newName) updateCategoryName(contextMenu.categoryId!, newName);
+          close();
+        }}
+      >
+        <Icon icon="qlementine-icons:rename-16" width="24" height="24" color="#fff" />
+        Rename
+      </button>
 
-          Delete
-        </button>
+      <button
+        onClick={() => {
+          deleteCategory(contextMenu.categoryId!);
+          close();
+        }}
+      >
+        <Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" color="#fff" />
+        Delete
+      </button>
 
-        <hr color="#686E7C"/>
+      <hr color="#686E7C" />
 
-        <button
-          onClick={() => {
-            setCategoryFolder(contextMenu.categoryId!);
-            close();
-          }}
-        >
-          <Icon icon="ic:baseline-drive-folder-upload" width="24" height="24" color="#fff" />
-
-          Choose Folder...
-        </button>
-      </div>
-    );
+      <button
+        onClick={() => {
+          setCategoryFolder(contextMenu.categoryId!);
+          close();
+        }}
+      >
+        <Icon icon="ic:baseline-drive-folder-upload" width="24" height="24" color="#fff" />
+        Choose Folder...
+      </button>
+    </div>
+  );
 
   if (contextMenu.type === "sidebar")
     return (

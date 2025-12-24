@@ -17,13 +17,22 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
-  const createPage = (categoryId: string, id?: string, title?: string, switchTo?: boolean) => {
+  type PageType = "note" | "channel"; // new
+
+  const createPage = (
+    categoryId: string,
+    id?: string,
+    title?: string,
+    switchTo?: boolean,
+    type: PageType = "note" // default is note
+  ) => {
     const newPage: Page = {
       id: id || uuid(),
-      title: title || "Untitled",
-      blocks: [{ type: "paragraph", content: "" }],
+      title: title || (type === "channel" ? "New Channel" : "Untitled"),
+      blocks: type === "note" ? [{ type: "paragraph", content: "" }] : [],
       categoryId,
-      icon: "outline-insert-drive-file",
+      icon: type === "channel" ? "outline-videocam" : "outline-insert-drive-file", // example icon
+      type, // store page type
     };
 
     setCategories((prev) =>
@@ -36,6 +45,7 @@ export function useActions(
 
     if (switchTo) setActivePageId(newPage.id);
   };
+
 
   const createCategory = () => {
     const c: Category = {

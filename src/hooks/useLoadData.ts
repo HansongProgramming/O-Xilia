@@ -28,6 +28,7 @@ export function useLoadData() {
             title: "Welcome to O-Xilia",
             blocks: [{ type: "paragraph", content: "Start your first note..." }],
             icon: "material-symbols:new-window-rounded",
+            type: "note",
             categoryId: "default-category",
           };
 
@@ -49,6 +50,7 @@ export function useLoadData() {
           categoryId: "fallback-category",
           blocks: [{ type: "paragraph", content: "" }],
           icon: "material-symbols:new-window-rounded",
+          type: "note",
         };
 
         const fallbackCategory: Category = {

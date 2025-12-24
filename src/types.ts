@@ -1,9 +1,12 @@
+export type PageType = "note" | "channel";
+
 export type Page = {
   id: string;
   title: string;
   icon?: string;
   blocks: any[];
   categoryId: string;
+    type: PageType;
 };
 
 export type Category = {
