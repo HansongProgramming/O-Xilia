@@ -251,6 +251,7 @@ export const flowBlock = createReactBlockSpec(
           <ReactFlow
             nodes={flow.nodes}
             edges={flow.edges}
+            colorMode="dark"
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
