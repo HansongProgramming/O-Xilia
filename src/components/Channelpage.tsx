@@ -12,7 +12,7 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
 
   const { startCall, endCall, localStream, remoteStream } = useCall();
 
-  const [inCall, setInCall] = useState(false);
+  const [inCall, setInCall] = useState(false);  
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
