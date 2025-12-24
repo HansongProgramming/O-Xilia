@@ -1,21 +1,20 @@
-import { BlockNoteEditor } from "@blocknote/core";
 import { insertOrUpdateBlockForSlashMenu } from "@blocknote/core/extensions";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
-import { MdOutlineDraw } from "react-icons/md"; 
-import { TbRoute } from "react-icons/tb";   // or any icon you like
+import { MdOutlineDraw } from "react-icons/md";
+import { TbRoute } from "react-icons/tb";
 
 /* --------------------------------------------------------------- */
 /* whiteboard slash item                                           */
 /* --------------------------------------------------------------- */
-export const insertWhiteboardBlockItem = (editor: BlockNoteEditor) => ({
+export const insertWhiteboardBlockItem = (editor: any) => ({
   title: "Whiteboard",
   onItemClick: () =>
     insertOrUpdateBlockForSlashMenu(editor, {
       type: "whiteboard" as any,
       props: { strokes: "[]" },
-    }),
+    } as any),
   aliases: ["whiteboard", "draw", "sketch", "canvas"],
   group: "Media",
   icon: <MdOutlineDraw size={18} />,
@@ -25,26 +24,26 @@ export const insertWhiteboardBlockItem = (editor: BlockNoteEditor) => ({
 /* --------------------------------------------------------------- */
 /* alert block item (your existing one)                            */
 /* --------------------------------------------------------------- */
-export const insertAlertBlockItem = (editor: BlockNoteEditor) => ({
+export const insertAlertBlockItem = (editor: any) => ({
   title: "Insert Alert Block",
   onItemClick: () =>
     insertOrUpdateBlockForSlashMenu(editor, {
       type: "alert" as any,
       content: [],
-    }),
+    } as any),
   aliases: ["alert", "warning", "info", "error", "success"],
   group: "Alerts",
   icon: <HiOutlineGlobeAlt size={18} />,
   subtext: "Insert a customizable alert block.",
 });
 
-export const insertFlowBlockItem = (editor: BlockNoteEditor) => ({
+export const insertFlowBlockItem = (editor: any) => ({
   title: "Flow diagram",
   onItemClick: () =>
     insertOrUpdateBlockForSlashMenu(editor, {
       type: "flow" as any,
       props: { flow: JSON.stringify({ nodes: [], edges: [] }) },
-    }),
+    } as any),
   aliases: ["flow", "diagram", "nodes", "react-flow"],
   group: "Media",
   icon: <TbRoute size={18} />,
@@ -55,7 +54,7 @@ export const insertFlowBlockItem = (editor: BlockNoteEditor) => ({
 /* combined list                                                   */
 /* --------------------------------------------------------------- */
 export const getCustomSlashMenuItems = (
-  editor: BlockNoteEditor
+  editor: any
 ): DefaultReactSuggestionItem[] => [
   ...getDefaultReactSlashMenuItems(editor),
   insertAlertBlockItem(editor),
