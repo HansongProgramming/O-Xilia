@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCall } from "../hooks/useCall";
 import "../index.css";
+import { Icon } from '@iconify/react';
 
 interface ChannelPageProps {
   channelId: string;
@@ -53,7 +54,7 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
       analyser.getByteFrequencyData(data);
       const volume = data.reduce((a, b) => a + b, 0) / data.length;
 
-      setIsSpeaking(volume > 18); 
+      setIsSpeaking(volume > 18);
       animationRef.current = requestAnimationFrame(detect);
     };
 
@@ -122,11 +123,19 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
         ) : (
           <>
             <button onClick={toggleMic} className={micEnabled ? "" : "danger"}>
-              {micEnabled ? "Mute Mic" : "Unmute Mic"}
+              <Icon
+                icon={micEnabled? `material-symbols:mic-rounded`:`material-symbols:mic-off-rounded`}
+                width="20"
+                height="20"
+              />
             </button>
 
             <button onClick={toggleCam} className={camEnabled ? "" : "danger"}>
-              {camEnabled ? "Turn Camera Off" : "Turn Camera On"}
+              <Icon
+                icon={camEnabled? `material-symbols:video-camera-front`:`material-symbols:video-camera-front-off`}
+                width="20"
+                height="20"
+              />
             </button>
 
             <button
@@ -136,7 +145,11 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
                 setInCall(false);
               }}
             >
-              Leave Call
+              <Icon
+                icon={"material-symbols:phone-disabled-rounded"}
+                width="20"
+                height="20"
+              />
             </button>
           </>
         )}

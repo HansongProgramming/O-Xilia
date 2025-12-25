@@ -223,8 +223,8 @@ body{
 
 .video-wrapper {
   position: relative;
-  width: 360px;
-  height: 220px;
+  width: 48%;
+  height: 50%;
   background: #000;
   border-radius: 10px;
   overflow: hidden;
