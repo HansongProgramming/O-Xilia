@@ -21,7 +21,13 @@ interface SidebarProps {
   ) => void;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
   createCategory: (opts?: { name?: string; focus?: boolean }) => void;
-  createPage: (categoryId: string) => void;
+  createPage: (
+    categoryId: string,
+    id?: string,
+    title?: string,
+    switchTo?: boolean,
+    type?: "note" | "channel"
+  ) => void;
   deleteCategory: (catId: string) => void;
   updateCategoryName: (categoryId: string, name: string) => void;
   toggleCategoryExpanded: (categoryId: string) => void;
