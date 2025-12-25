@@ -2,9 +2,14 @@ import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
 
-import Sidebar from "./components/Sidebar";
 import { useState } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { SuggestionMenuController } from "@blocknote/react";
+import { Icon } from "@iconify/react";
+
+import Sidebar from "./components/Sidebar";
+import ChannelPage from "./components/Channelpage";
+
 import type { ContextMenuState, IconPickerState } from "./types";
 
 import { useLoadData } from "./hooks/useLoadData";
@@ -13,10 +18,7 @@ import { useEditorChange } from "./hooks/useEditorChange";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useOutsideClick } from "./hooks/useOutsideClick";
 import { useActions } from "./hooks/useActions";
-import { Icon } from "@iconify/react";
 
-import "@blocknote/mantine/style.css";
-import { SuggestionMenuController } from "@blocknote/react";
 import { getCustomSlashMenuItems } from "./editor/customSlashMenu";
 
 export default function App() {
@@ -46,10 +48,9 @@ export default function App() {
 
   const editor = useEditor(categories, activePageId, isLoading);
   useEditorChange(editor, categories, setCategories, activePageId, isLoading);
-
   useAutoSave(categories, isLoading);
-
   useOutsideClick(setContextMenu, setIconPicker);
+
   const actions = useActions(
     categories,
     setCategories,
@@ -60,12 +61,13 @@ export default function App() {
     setIconPicker
   );
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="loading-screen">
         <h2>Loading...</h2>
       </div>
     );
+  }
 
   const activePage = categories
     .flatMap((c) => c.pages || [])
@@ -92,35 +94,46 @@ export default function App() {
       />
 
       <main className="main-content">
-        {activePage && editor ? (
-          <>
-            <div className="page-header">
-              <button
-                className="icon-button header-icon"
-                onClick={(ev) =>
-                  actions.openIconPicker(ev, "page", activePage.id)
-                }
-              >
-                <Icon icon={`ic:${activePage.icon}`} width="24" height="24" />
-              </button>
+        {activePage ? (
+          activePage.type === "channel" ? (
+            editor ? (
+              <ChannelPage channelId={activePage.id} />
+            ) : null
+          ) : (
+            <>
+              <div className="page-header">
+                <button
+                  className="icon-button header-icon"
+                  onClick={(ev) =>
+                    actions.openIconPicker(ev, "page", activePage.id)
+                  }
+                >
+                  <Icon icon={`ic:${activePage.icon}`} width="24" height="24" />
+                </button>
 
-              <input
-                className="title-input"
-                value={activePage.title}
-                onChange={(e) => {
-                  actions.updatePageTitle(e.target.value);
-                }}
-              />
-            </div>
-            <div className="editor-container">
-              <BlockNoteView editor={editor} slashMenu={false}>
-                <SuggestionMenuController
-                  triggerCharacter="/"
-                  getItems={async (_query) => getCustomSlashMenuItems(editor)}
+                <input
+                  className="title-input"
+                  value={activePage.title}
+                  onChange={(e) =>
+                    actions.updatePageTitle(e.target.value)
+                  }
                 />
-              </BlockNoteView>
-            </div>
-          </>
+              </div>
+
+              {editor && (
+                <div className="editor-container">
+                  <BlockNoteView editor={editor} slashMenu={false}>
+                    <SuggestionMenuController
+                      triggerCharacter="/"
+                      getItems={async () =>
+                        getCustomSlashMenuItems(editor)
+                      }
+                    />
+                  </BlockNoteView>
+                </div>
+              )}
+            </>
+          )
         ) : (
           <div className="no-page-selected">
             <h3>No page selected</h3>
