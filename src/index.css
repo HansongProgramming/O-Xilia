@@ -198,3 +198,89 @@ body{
   transition: all 0.1s ease;
   margin-top: 2px;
 }
+
+.channel-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1e1f22;
+  color: #fff;
+  padding: 16px;
+}
+
+.channel-title {
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.videos {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 360px;
+  height: 220px;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border 0.15s ease;
+}
+
+.video-wrapper.speaking {
+  border: 2px solid white;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.controls button {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #2b2d31;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.controls button:hover {
+  background: #3a3c43;
+}
+
+.controls .join {
+  background: #23a55a;
+}
+
+.controls .leave {
+  background: #da373c;
+}
+
+.controls .danger {
+  background: #da373c;
+}
