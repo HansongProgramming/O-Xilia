@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCall } from "../hooks/useCall";
 
@@ -37,7 +37,7 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
         {!inCall ? (
           <button
             onClick={async () => {
-              await startCall(channelId);
+              await startCall();
               setInCall(true);
             }}
           >

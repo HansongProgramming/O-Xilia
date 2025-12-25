@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function useCall() {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
 
-    async function startCall(channelId: string) {
+    async function startCall() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
