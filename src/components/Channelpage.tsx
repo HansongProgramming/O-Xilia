@@ -57,7 +57,7 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
       analyser.getByteFrequencyData(data);
       const volume = data.reduce((a, b) => a + b, 0) / data.length;
 
-      setIsSpeaking(volume > 18); // Discord-style highlight threshold
+      setIsSpeaking(volume > 12); 
       animationRef.current = requestAnimationFrame(detect);
     };
 
