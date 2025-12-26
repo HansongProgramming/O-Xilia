@@ -10,6 +10,7 @@ interface ChannelPageProps {
 export default function ChannelPage({ channelId }: ChannelPageProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -58,10 +59,46 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
       const volume = data.reduce((a, b) => a + b, 0) / data.length;
 
       setIsSpeaking(volume > 12); 
+      drawVisualizer(data);
       animationRef.current = requestAnimationFrame(detect);
     };
 
     detect();
+  };
+
+  // ---------- visualizer drawing ----------
+  const drawVisualizer = (data: Uint8Array) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.fillStyle = "rgba(0,0,0,0)"; 
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#ffffffff";
+    ctx.beginPath();
+
+    const sliceWidth = width / data.length;
+    let x = 0;
+
+    for (let i = 0; i < data.length; i++) {
+      const v = data[i] / 255;
+      const y = height - v * height;
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+
+      x += sliceWidth;
+    }
+
+    ctx.lineTo(width, height);
+    ctx.stroke();
   };
 
   // Cleanup
@@ -89,13 +126,26 @@ export default function ChannelPage({ channelId }: ChannelPageProps) {
       <h2 className="channel-title">Channel: {channelId}</h2>
 
       <div className="videos">
-        <div className={`video-wrapper ${isSpeaking ? "speaking" : ""}`}>
+        <div className={`video-wrapper ${isSpeaking ? "speaking" : ""}`} style={{ position: "relative" }}>
           <video
             ref={localVideoRef}
             autoPlay
             muted
             playsInline
             className="local-video"
+          />
+          {/* Visualizer canvas overlay */}
+          <canvas
+            ref={canvasRef}
+            width={320}   
+            height={50}   
+            style={{
+              position: "absolute",
+              bottom: "10px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              pointerEvents: "none",
+            }}
           />
           <span className="label">You</span>
         </div>
