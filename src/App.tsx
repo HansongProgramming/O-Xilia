@@ -2,8 +2,9 @@ import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
 
-import type { Category } from "./types";
 import { useState } from "react";
+import type { Category } from "./types";
+
 import { BlockNoteView } from "@blocknote/mantine";
 import { SuggestionMenuController } from "@blocknote/react";
 import { Icon } from "@iconify/react";
@@ -31,29 +32,57 @@ export default function App() {
     isLoading,
   } = useLoadData();
 
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    type: null,
-    categoryId: null,
-  });
+  const [contextMenu, setContextMenu] =
+    useState<ContextMenuState>({
+      visible: false,
+      x: 0,
+      y: 0,
+      type: null,
+      categoryId: null,
+    });
 
-  const [iconPicker, setIconPicker] = useState<IconPickerState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    forType: null,
-    id: null,
-  });
+  const [iconPicker, setIconPicker] =
+    useState<IconPickerState>({
+      visible: false,
+      x: 0,
+      y: 0,
+      forType: null,
+      id: null,
+    });
 
+  /** CATEGORY REORDER */
   const reorderCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
   };
 
+  /** PAGE REORDER (WITHIN CATEGORY) */
+  const reorderPages = (
+    categoryId: string,
+    newPages: Category["pages"]
+  ) => {
+    setCategories((prev) =>
+      prev.map((cat) =>
+        cat.id === categoryId
+          ? { ...cat, pages: newPages }
+          : cat
+      )
+    );
+  };
 
-  const editor = useEditor(categories, activePageId, isLoading);
-  useEditorChange(editor, categories, setCategories, activePageId, isLoading);
+  const editor = useEditor(
+    categories,
+    activePageId,
+    isLoading
+  );
+
+  useEditorChange(
+    editor,
+    categories,
+    setCategories,
+    activePageId,
+    isLoading
+  );
+
   useAutoSave(categories, isLoading);
   useOutsideClick(setContextMenu, setIconPicker);
 
@@ -98,6 +127,7 @@ export default function App() {
         setCategoryFolder={actions.setCategoryFolder}
         onIconSelect={actions.onIconSelect}
         reorderCategories={reorderCategories}
+        reorderPages={reorderPages}
       />
 
       <main className="main-content">
@@ -112,28 +142,43 @@ export default function App() {
                 <button
                   className="icon-button header-icon"
                   onClick={(ev) =>
-                    actions.openIconPicker(ev, "page", activePage.id)
+                    actions.openIconPicker(
+                      ev,
+                      "page",
+                      activePage.id
+                    )
                   }
                 >
-                  <Icon icon={`ic:${activePage.icon}`} width="24" height="24" />
+                  <Icon
+                    icon={`ic:${activePage.icon}`}
+                    width="24"
+                    height="24"
+                  />
                 </button>
 
                 <input
                   className="title-input"
                   value={activePage.title}
                   onChange={(e) =>
-                    actions.updatePageTitle(e.target.value)
+                    actions.updatePageTitle(
+                      e.target.value
+                    )
                   }
                 />
               </div>
 
               {editor && (
                 <div className="editor-container">
-                  <BlockNoteView editor={editor} slashMenu={false}>
+                  <BlockNoteView
+                    editor={editor}
+                    slashMenu={false}
+                  >
                     <SuggestionMenuController
                       triggerCharacter="/"
                       getItems={async () =>
-                        getCustomSlashMenuItems(editor)
+                        getCustomSlashMenuItems(
+                          editor
+                        )
                       }
                     />
                   </BlockNoteView>

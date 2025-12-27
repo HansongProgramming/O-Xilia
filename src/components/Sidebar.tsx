@@ -1,6 +1,7 @@
 import React from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -61,6 +62,10 @@ interface SidebarProps {
   onIconSelect: (iconName: string) => void;
 
   reorderCategories: (categories: Category[]) => void;
+  reorderPages: (
+    categoryId: string,
+    pages: Category["pages"]
+  ) => void;
 }
 
 export default function Sidebar({
@@ -87,29 +92,54 @@ export default function Sidebar({
   onIconSelect,
 
   reorderCategories,
+  reorderPages,
 }: SidebarProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-    if (!over) return;
-    if (active.id === over.id) return;
-
-    const oldIndex = categories.findIndex(
+    /** CATEGORY DRAG */
+    const catFrom = categories.find(
       (c) => c.id === active.id
     );
-    const newIndex = categories.findIndex(
+    const catTo = categories.find(
       (c) => c.id === over.id
     );
 
-    if (oldIndex === -1 || newIndex === -1) return;
+    if (catFrom && catTo) {
+      const oldIndex = categories.findIndex(
+        (c) => c.id === active.id
+      );
+      const newIndex = categories.findIndex(
+        (c) => c.id === over.id
+      );
 
-    const reordered = arrayMove(
-      categories,
-      oldIndex,
-      newIndex
-    );
+      reorderCategories(
+        arrayMove(categories, oldIndex, newIndex)
+      );
+      return;
+    }
 
-    reorderCategories(reordered);
+    /** PAGE DRAG (SAME CATEGORY ONLY) */
+    for (const category of categories) {
+      const pages = category.pages;
+      if (!pages) continue;
+
+      const oldIndex = pages.findIndex(
+        (p) => p.id === active.id
+      );
+      const newIndex = pages.findIndex(
+        (p) => p.id === over.id
+      );
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorderPages(
+          category.id,
+          arrayMove(pages, oldIndex, newIndex)
+        );
+        return;
+      }
+    }
   }
 
   return (
@@ -120,9 +150,8 @@ export default function Sidebar({
         if (
           target.closest(".category") ||
           target.closest(".page-item")
-        ) {
+        )
           return;
-        }
 
         e.preventDefault();
         setContextMenu({
