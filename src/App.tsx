@@ -97,9 +97,9 @@ export default function App() {
         setActivePageId={setActivePageId}
         setCategoryFolder={actions.setCategoryFolder}
         onIconSelect={actions.onIconSelect}
-
         reorderCategories={reorderCategories}
       />
+
       <main className="main-content">
         {activePage ? (
           activePage.type === "channel" ? (
