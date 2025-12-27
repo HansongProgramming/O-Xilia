@@ -2,6 +2,7 @@ import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 import "./index.css";
 
+import type { Category } from "./types";
 import { useState } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { SuggestionMenuController } from "@blocknote/react";
@@ -45,6 +46,11 @@ export default function App() {
     forType: null,
     id: null,
   });
+
+  const reorderCategories = (newCategories: Category[]) => {
+    setCategories(newCategories);
+  };
+
 
   const editor = useEditor(categories, activePageId, isLoading);
   useEditorChange(editor, categories, setCategories, activePageId, isLoading);
@@ -91,8 +97,9 @@ export default function App() {
         setActivePageId={setActivePageId}
         setCategoryFolder={actions.setCategoryFolder}
         onIconSelect={actions.onIconSelect}
-      />
 
+        reorderCategories={reorderCategories}
+      />
       <main className="main-content">
         {activePage ? (
           activePage.type === "channel" ? (
