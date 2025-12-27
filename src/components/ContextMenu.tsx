@@ -59,7 +59,7 @@ export default function ContextMenus({
           close();
         }}
       >
-        <Icon icon="material-symbols:new-window-rounded" width="24" height="24" color="#fff" />
+        <Icon icon="material-symbols:new-window-rounded" width="16" height="16" color="#fff" />
         Add Page
       </button>
 
@@ -69,7 +69,7 @@ export default function ContextMenus({
           close();
         }}
       >
-        <Icon icon="material-symbols:videocam-outline" width="24" height="24" color="#fff" />
+        <Icon icon="material-symbols:videocam-outline" width="16" height="16" color="#fff" />
         Add Channel
       </button>
 
@@ -80,7 +80,7 @@ export default function ContextMenus({
           close();
         }}
       >
-        <Icon icon="qlementine-icons:rename-16" width="24" height="24" color="#fff" />
+        <Icon icon="qlementine-icons:rename-16" width="16" height="16" color="#fff" />
         Rename
       </button>
 
@@ -90,7 +90,7 @@ export default function ContextMenus({
           close();
         }}
       >
-        <Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" color="#fff" />
+        <Icon icon="material-symbols:delete-outline-rounded" width="16" height="16" color="#fff" />
         Delete
       </button>
 
@@ -102,7 +102,7 @@ export default function ContextMenus({
           close();
         }}
       >
-        <Icon icon="ic:baseline-drive-folder-upload" width="24" height="24" color="#fff" />
+        <Icon icon="ic:baseline-drive-folder-upload" width="16" height="16" color="#fff" />
         Choose Folder...
       </button>
     </div>
@@ -121,7 +121,7 @@ export default function ContextMenus({
             close();
           }}
         >
-          <Icon icon="material-symbols:create-new-folder-outline" width="24" height="24" color="#fff" />
+          <Icon icon="material-symbols:create-new-folder-outline" width="16" height="16" color="#fff" />
           New Category
         </button>
       </div>
