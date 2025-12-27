@@ -1,7 +1,10 @@
 import React from "react";
 import PageItem from "./PageItem";
 import type { Category, ContextMenuState } from "../types";
-import { Icon } from '@iconify/react';
+import { Icon } from "@iconify/react";
+
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface CategoryItemProps {
   category: Category;
@@ -15,7 +18,9 @@ interface CategoryItemProps {
   toggleCategoryExpanded: (categoryId: string) => void;
   deletePage: (pageId: string) => void;
   setActivePageId: (pageId: string) => void;
-  setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
+  setContextMenu: React.Dispatch<
+    React.SetStateAction<ContextMenuState>
+  >;
 }
 
 export default function CategoryItem({
@@ -28,8 +33,33 @@ export default function CategoryItem({
   setActivePageId,
   setContextMenu,
 }: CategoryItemProps) {
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: category.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
   return (
-    <div className={`category ${category.isExpanded ? 'expanded' : ''}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`category ${
+        category.isExpanded ? "expanded" : ""
+      }`}
+      {...attributes}
+      {...listeners}
+    >
       <div
         className="category-header"
         onContextMenu={(e) => {
@@ -45,49 +75,73 @@ export default function CategoryItem({
       >
         <button
           className="icon-button category-icon"
-          onClick={(ev) => openIconPicker(ev, "category", category.id)}
+          onClick={(ev) =>
+            openIconPicker(ev, "category", category.id)
+          }
         >
-          <Icon 
-            icon={category.icon ? `ic:${category.icon}` : "mdi:folder"} 
-            width="20" 
-            height="20" 
+          <Icon
+            icon={
+              category.icon
+                ? `ic:${category.icon}`
+                : "mdi:folder"
+            }
+            width="20"
+            height="20"
           />
         </button>
-        
+
         <input
           type="text"
           className="category-name-input"
           value={category.name}
-          onChange={(e) => updateCategoryName(category.id, e.target.value)}
+          onChange={(e) =>
+            updateCategoryName(category.id, e.target.value)
+          }
         />
 
         <button
           className="category-toggle"
-          onClick={() => toggleCategoryExpanded(category.id)}
-          aria-label={category.isExpanded ? "Collapse category" : "Expand category"}
+          onClick={() =>
+            toggleCategoryExpanded(category.id)
+          }
+          aria-label={
+            category.isExpanded
+              ? "Collapse category"
+              : "Expand category"
+          }
         >
           {category.isExpanded ? (
-            <Icon icon="line-md:chevron-small-down" width="20" height="20" />
+            <Icon
+              icon="line-md:chevron-small-down"
+              width="20"
+              height="20"
+            />
           ) : (
-            <Icon icon="ic:round-chevron-left" width="20" height="20" />
+            <Icon
+              icon="ic:round-chevron-left"
+              width="20"
+              height="20"
+            />
           )}
         </button>
       </div>
-      
-      <div className="pages-container">
-        <div className="pages-list">
-          {category.pages?.map((page) => (
-            <PageItem
-              key={page.id}
-              page={page}
-              activePageId={activePageId}
-              setActivePageId={setActivePageId}
-              deletePage={deletePage}
-              openIconPicker={openIconPicker}
-            />
-          ))}
+
+      {category.isExpanded && (
+        <div className="pages-container">
+          <div className="pages-list">
+            {category.pages?.map((page) => (
+              <PageItem
+                key={page.id}
+                page={page}
+                activePageId={activePageId}
+                setActivePageId={setActivePageId}
+                deletePage={deletePage}
+                openIconPicker={openIconPicker}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
