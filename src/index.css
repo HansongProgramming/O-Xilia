@@ -88,7 +88,7 @@ body {
 /* ---------- sidebar ---------- */
 .sidebar {
   width: 300px;
-  height: 70%;
+  height: 65%;
   background: var(--bg1);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -601,7 +601,7 @@ video {
 
 .calendar {
   width: 300px;
-  height: 25%;
+  height: 30%;
   background: var(--bg1);
   border: 1px solid var(--border);
   border-radius: 16px;
