@@ -10,6 +10,7 @@ import { SuggestionMenuController } from "@blocknote/react";
 import { Icon } from "@iconify/react";
 
 import Sidebar from "./components/Sidebar";
+import SidebarCalendar from "./components/SidebarCalendar";
 import ChannelPage from "./components/Channelpage";
 
 import type { ContextMenuState, IconPickerState } from "./types";
@@ -110,25 +111,32 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar
-        categories={categories}
-        activePageId={activePageId}
-        contextMenu={contextMenu}
-        iconPicker={iconPicker}
-        openIconPicker={actions.openIconPicker}
-        setContextMenu={setContextMenu}
-        createCategory={actions.createCategory}
-        createPage={actions.createPage}
-        deleteCategory={actions.deleteCategory}
-        updateCategoryName={actions.updateCategoryName}
-        toggleCategoryExpanded={actions.toggleCategoryExpanded}
-        deletePage={actions.deletePage}
-        setActivePageId={setActivePageId}
-        setCategoryFolder={actions.setCategoryFolder}
-        onIconSelect={actions.onIconSelect}
-        reorderCategories={reorderCategories}
-        reorderPages={reorderPages}
-      />
+      <div className="side-container">
+        <div className="sidebar-wrapper">
+          <Sidebar
+            categories={categories}
+            activePageId={activePageId}
+            contextMenu={contextMenu}
+            iconPicker={iconPicker}
+            openIconPicker={actions.openIconPicker}
+            setContextMenu={setContextMenu}
+            createCategory={actions.createCategory}
+            createPage={actions.createPage}
+            deleteCategory={actions.deleteCategory}
+            updateCategoryName={actions.updateCategoryName}
+            toggleCategoryExpanded={actions.toggleCategoryExpanded}
+            deletePage={actions.deletePage}
+            setActivePageId={setActivePageId}
+            setCategoryFolder={actions.setCategoryFolder}
+            onIconSelect={actions.onIconSelect}
+            reorderCategories={reorderCategories}
+            reorderPages={reorderPages}
+          />
+        </div>
+        <div className="calendar-wrapper">
+          <SidebarCalendar />
+        </div>
+      </div>
 
       <main className="main-content">
         {activePage ? (
