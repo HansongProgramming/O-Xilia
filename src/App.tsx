@@ -112,30 +112,26 @@ export default function App() {
   return (
     <div className="app">
       <div className="side-container">
-        <div className="sidebar-wrapper">
-          <Sidebar
-            categories={categories}
-            activePageId={activePageId}
-            contextMenu={contextMenu}
-            iconPicker={iconPicker}
-            openIconPicker={actions.openIconPicker}
-            setContextMenu={setContextMenu}
-            createCategory={actions.createCategory}
-            createPage={actions.createPage}
-            deleteCategory={actions.deleteCategory}
-            updateCategoryName={actions.updateCategoryName}
-            toggleCategoryExpanded={actions.toggleCategoryExpanded}
-            deletePage={actions.deletePage}
-            setActivePageId={setActivePageId}
-            setCategoryFolder={actions.setCategoryFolder}
-            onIconSelect={actions.onIconSelect}
-            reorderCategories={reorderCategories}
-            reorderPages={reorderPages}
-          />
-        </div>
-        <div className="calendar-wrapper">
-          <SidebarCalendar />
-        </div>
+        <Sidebar
+          categories={categories}
+          activePageId={activePageId}
+          contextMenu={contextMenu}
+          iconPicker={iconPicker}
+          openIconPicker={actions.openIconPicker}
+          setContextMenu={setContextMenu}
+          createCategory={actions.createCategory}
+          createPage={actions.createPage}
+          deleteCategory={actions.deleteCategory}
+          updateCategoryName={actions.updateCategoryName}
+          toggleCategoryExpanded={actions.toggleCategoryExpanded}
+          deletePage={actions.deletePage}
+          setActivePageId={setActivePageId}
+          setCategoryFolder={actions.setCategoryFolder}
+          onIconSelect={actions.onIconSelect}
+          reorderCategories={reorderCategories}
+          reorderPages={reorderPages}
+        />
+        <SidebarCalendar />
       </div>
 
       <main className="main-content">
