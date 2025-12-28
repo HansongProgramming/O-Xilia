@@ -549,24 +549,35 @@ video {
   background: #da373c;
 }
 
+/* container that holds pages */
+.pages-list {
+  padding-left: 16px;
+  position: relative;
+}
+
+/* each tree node */
 .tree-node {
   position: relative;
 }
 
+/* vertical line */
 .tree-node::before {
   content: "";
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: -8px;
-  top: -8px;
-  bottom: -8px;
-  border-left: 1px solid #444;
+  width: 1px;
+  background: #555;
 }
 
-.tree-node::after {
+/* horizontal connector */
+.tree-node > .page-item::before {
   content: "";
   position: absolute;
-  left: -8px;
   top: 50%;
+  left: -8px;
   width: 8px;
-  border-top: 1px solid #444;
+  height: 1px;
+  background: #555;
 }

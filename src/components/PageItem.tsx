@@ -47,11 +47,11 @@ export default function PageItem({
   };
 
   return (
-    <>
+    <div className="tree-node">
       <div
         ref={setNodeRef}
         style={style}
-        className={`page-item tree-node ${
+        className={`page-item ${
           page.id === activePageId ? "active" : ""
         }`}
         onClick={() => setActivePageId(page.id)}
@@ -105,6 +105,6 @@ export default function PageItem({
           openIconPicker={openIconPicker}
         />
       ))}
-    </>
+    </div>
   );
 }
