@@ -548,3 +548,25 @@ video {
 .controls .danger {
   background: #da373c;
 }
+
+.tree-node {
+  position: relative;
+}
+
+.tree-node::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  bottom: -8px;
+  border-left: 1px solid #444;
+}
+
+.tree-node::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 8px;
+  border-top: 1px solid #444;
+}

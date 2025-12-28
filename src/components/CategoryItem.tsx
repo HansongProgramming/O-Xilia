@@ -69,13 +69,11 @@ export default function CategoryItem({
           });
         }}
       >
-        {/* ✅ DRAG HANDLE ONLY */}
         <span
           className="drag-handle"
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          title="Drag category"
         >
           ⋮⋮
         </span>
@@ -109,33 +107,32 @@ export default function CategoryItem({
             e.stopPropagation();
             toggleCategoryExpanded(category.id);
           }}
-          aria-label={
-            category.isExpanded
-              ? "Collapse category"
-              : "Expand category"
-          }
         >
           {category.isExpanded ? "▾" : "▸"}
         </button>
       </div>
 
-      {category.isExpanded && category.pages && (
+      {category.isExpanded && (
         <SortableContext
           items={category.pages.map((p) => p.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="pages-list">
-            {category.pages.map((page) => (
-              <PageItem
-                key={page.id}
-                page={page}
-                categoryId={category.id}
-                activePageId={activePageId}
-                setActivePageId={setActivePageId}
-                deletePage={deletePage}
-                openIconPicker={openIconPicker}
-              />
-            ))}
+            {category.pages
+              .filter((p) => p.parentId == null)
+              .map((page) => (
+                <PageItem
+                  key={page.id}
+                  page={page}
+                  categoryId={category.id}
+                  level={0}
+                  pages={category.pages}
+                  activePageId={activePageId}
+                  setActivePageId={setActivePageId}
+                  deletePage={deletePage}
+                  openIconPicker={openIconPicker}
+                />
+              ))}
           </div>
         </SortableContext>
       )}

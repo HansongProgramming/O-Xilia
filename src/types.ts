@@ -7,6 +7,8 @@ export type Page = {
   blocks: any[];
   categoryId: string;
     type: PageType;
+  parentId: string | null;
+  children?: Page[];
 };
 
 export type Category = {
