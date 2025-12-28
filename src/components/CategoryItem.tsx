@@ -3,7 +3,11 @@ import PageItem from "./PageItem";
 import type { Category, ContextMenuState } from "../types";
 import { Icon } from "@iconify/react";
 
-import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 interface CategoryItemProps {
@@ -51,8 +55,6 @@ export default function CategoryItem({
       ref={setNodeRef}
       style={style}
       className={`category ${category.isExpanded ? "expanded" : ""}`}
-      {...attributes}
-      {...listeners}
     >
       <div
         className="category-header"
@@ -67,9 +69,23 @@ export default function CategoryItem({
           });
         }}
       >
+        {/* ✅ DRAG HANDLE ONLY */}
+        <span
+          className="drag-handle"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          title="Drag category"
+        >
+          ⋮⋮
+        </span>
+
         <button
           className="icon-button category-icon"
-          onClick={(ev) => openIconPicker(ev, "category", category.id)}
+          onClick={(ev) => {
+            ev.stopPropagation();
+            openIconPicker(ev, "category", category.id);
+          }}
         >
           <Icon
             icon={category.icon ? `ic:${category.icon}` : "mdi:folder"}
@@ -81,12 +97,23 @@ export default function CategoryItem({
         <input
           className="category-name-input"
           value={category.name}
-          onChange={(e) => updateCategoryName(category.id, e.target.value)}
+          onChange={(e) =>
+            updateCategoryName(category.id, e.target.value)
+          }
+          onClick={(e) => e.stopPropagation()}
         />
 
         <button
           className="category-toggle"
-          onClick={() => toggleCategoryExpanded(category.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleCategoryExpanded(category.id);
+          }}
+          aria-label={
+            category.isExpanded
+              ? "Collapse category"
+              : "Expand category"
+          }
         >
           {category.isExpanded ? "▾" : "▸"}
         </button>
