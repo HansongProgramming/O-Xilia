@@ -46,9 +46,17 @@ export default function PageItem({
       style={style}
       className={`page-item ${page.id === activePageId ? "active" : ""}`}
       onClick={() => setActivePageId(page.id)}
-      {...attributes}
-      {...listeners}
     >
+      <span
+        className="drag-handle"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        title="Drag page"
+      >
+        ⋮⋮
+      </span>
+
       <button
         className="icon-button page-icon"
         onClick={(ev) => {
