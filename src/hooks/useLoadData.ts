@@ -30,6 +30,7 @@ export function useLoadData() {
             icon: "material-symbols:new-window-rounded",
             type: "note",
             categoryId: "default-category",
+            parentId: null,
           };
 
           const defaultCategory: Category = {
@@ -51,6 +52,7 @@ export function useLoadData() {
           blocks: [{ type: "paragraph", content: "" }],
           icon: "material-symbols:new-window-rounded",
           type: "note",
+          parentId: null,
         };
 
         const fallbackCategory: Category = {

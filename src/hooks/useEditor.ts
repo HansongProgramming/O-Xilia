@@ -6,23 +6,19 @@ import { schema } from "../editor/schema";
 function sanitizeBlocks(blocks: any[]) {
   if (!Array.isArray(blocks)) return [];
 
-  return blocks
-    .filter((block) =>
-      ["paragraph", "alert", "whiteboard", "flow"].includes(block?.type)
-    )
-    .map((block) => {
-      if (block.type === "flow") {
-        return {
-          ...block,
-          props: {
-            flow:
-              block.props?.flow ??
-              JSON.stringify({ nodes: [], edges: [] }),
-          },
-        };
-      }
-      return block;
-    });
+  return blocks.map((block) => {
+    if (block.type === "flow") {
+      return {
+        ...block,
+        props: {
+          flow:
+            block.props?.flow ??
+            JSON.stringify({ nodes: [], edges: [] }),
+        },
+      };
+    }
+    return block;
+  });
 }
 
 export function useEditor(

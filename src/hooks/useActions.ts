@@ -31,8 +31,9 @@ export function useActions(
       title: title || (type === "channel" ? "New Channel" : "Untitled"),
       blocks: type === "note" ? [{ type: "paragraph", content: "" }] : [],
       categoryId,
-      icon: type === "channel" ? "outline-videocam" : "outline-insert-drive-file", 
-      type, 
+      icon: type === "channel" ? "outline-videocam" : "outline-insert-drive-file",
+      type,
+      parentId: null,
     };
 
     setCategories((prev) =>
