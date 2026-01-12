@@ -288,7 +288,7 @@ export const ganttBlock = createReactBlockSpec(
                         >
                             Timeline
                         </h3>
-                        <div style={{ display: "flex", gap: "12px" }}>
+                        <div style={{ display: "flex", gap: "12px"}}>
                             <Button
                                 size="sm"
                                 leftSection={<MdAdd size={16} />}
