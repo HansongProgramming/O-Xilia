@@ -75,17 +75,6 @@ export default function ContextMenus({
 
       <button
         onClick={() => {
-          const newName = prompt("Rename category:");
-          if (newName) updateCategoryName(contextMenu.categoryId!, newName);
-          close();
-        }}
-      >
-        <Icon icon="qlementine-icons:rename-16" width="16" height="16" color="#fff" />
-        Rename
-      </button>
-
-      <button
-        onClick={() => {
           deleteCategory(contextMenu.categoryId!);
           close();
         }}
