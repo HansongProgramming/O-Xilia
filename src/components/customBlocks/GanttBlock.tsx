@@ -20,13 +20,13 @@ interface GanttData {
 }
 
 const defaultColors = [
-  "#507aff",
-  "#0bc10b",
-  "#e69819",
-  "#d80d0d",
+  "#2f80ed",
+  "#27ae60",
+  "#f1c40f",
+  "#e74c3c",
   "#9b59b6",
   "#1abc9c",
-  "#e74c3c",
+  "#e67e22",
   "#3498db",
 ];
 
@@ -249,63 +249,123 @@ export const ganttBlock = createReactBlockSpec(
         <div
           className="gantt-chart-container"
           style={{
-            padding: "16px",
-            border: "1px solid #e0e0e0",
-            borderRadius: "8px",
-            backgroundColor: "#fff",
-            marginTop: "8px",
-            marginBottom: "8px",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "var(--bg0, #17181A)",
+            color: "var(--text1, #e0e0e0)",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            fontFamily: "var(--font, 'Roboto', sans-serif)",
           }}
           contentEditable={false}
         >
+          {/* Header */}
           <div
             style={{
+              padding: "16px 24px",
+              borderBottom: "1px solid var(--border, #444B57)",
+              backgroundColor: "var(--bg1, #212225)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "16px",
+              flexShrink: 0,
             }}
           >
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "var(--text0, #ffffff)",
+              }}
+            >
               Timeline
             </h3>
-            <Button
-              size="xs"
-              leftSection={<MdAdd size={16} />}
-              onClick={addTask}
-            >
-              Add Task
-            </Button>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <Button
+                size="sm"
+                leftSection={<MdAdd size={16} />}
+                onClick={addTask}
+                styles={{
+                  root: {
+                    backgroundColor: "var(--accent, #2f80ed)",
+                    color: "#ffffff",
+                    border: "none",
+                  },
+                }}
+              >
+                Add Task
+              </Button>
+              <Button
+                size="sm"
+                variant="subtle"
+                onClick={() => {
+                  props.editor.updateBlock(props.block, {
+                    type: "gantt",
+                    props: { data: props.block.props.data },
+                  });
+                  // This will trigger a re-render and close fullscreen
+                  const container = document.querySelector('.gantt-chart-container');
+                  if (container) {
+                    (container as HTMLElement).style.position = 'relative';
+                  }
+                }}
+                styles={{
+                  root: {
+                    color: "var(--text1, #e0e0e0)",
+                    backgroundColor: "var(--bg2, #252525)",
+                  },
+                }}
+              >
+                Close
+              </Button>
+            </div>
           </div>
 
           {ganttData.tasks.length === 0 ? (
             <div
               style={{
-                textAlign: "center",
-                padding: "40px",
-                color: "#666",
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text2, #b3b3b3)",
               }}
             >
-              No tasks yet. Click "Add Task" to get started.
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "16px", marginBottom: "16px" }}>
+                  No tasks yet. Click "Add Task" to get started.
+                </p>
+              </div>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: "0" }}>
+            <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
               {/* Left side - Task names */}
               <div
                 style={{
-                  width: "200px",
+                  width: "280px",
                   flexShrink: 0,
-                  borderRight: "1px solid #e0e0e0",
+                  borderRight: "1px solid var(--border, #444B57)",
+                  backgroundColor: "var(--bg1, #212225)",
+                  overflowY: "auto",
                 }}
               >
                 <div
                   style={{
                     height: "60px",
-                    padding: "8px",
-                    borderBottom: "1px solid #e0e0e0",
+                    padding: "16px",
+                    borderBottom: "1px solid var(--border, #444B57)",
                     fontWeight: 600,
                     display: "flex",
                     alignItems: "center",
+                    fontSize: "14px",
+                    color: "var(--text0, #ffffff)",
                   }}
                 >
                   Task Name
@@ -314,31 +374,35 @@ export const ganttBlock = createReactBlockSpec(
                   <div
                     key={task.id}
                     style={{
-                      height: "50px",
-                      padding: "8px",
-                      borderBottom: "1px solid #f0f0f0",
+                      height: "56px",
+                      padding: "12px 16px",
+                      borderBottom: "1px solid var(--border, #444B57)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "12px",
+                      backgroundColor: "var(--bg1, #212225)",
                     }}
                   >
                     <MdDragIndicator
-                      size={16}
-                      style={{ color: "#999", cursor: "grab" }}
+                      size={18}
+                      style={{ color: "var(--text3, #888888)", cursor: "grab" }}
                     />
                     <TextInput
                       value={task.name}
                       onChange={(e) =>
                         updateTask(task.id, { name: e.target.value })
                       }
-                      size="xs"
+                      size="sm"
                       styles={{
                         input: {
                           border: "none",
-                          padding: "4px",
+                          backgroundColor: "transparent",
+                          color: "var(--text1, #e0e0e0)",
+                          padding: "4px 8px",
                           fontSize: "14px",
                         },
                       }}
+                      style={{ flex: 1 }}
                     />
                     <Menu withinPortal={false}>
                       <Menu.Target>
@@ -352,16 +416,24 @@ export const ganttBlock = createReactBlockSpec(
                         >
                           <div
                             style={{
-                              width: "16px",
-                              height: "16px",
+                              width: "20px",
+                              height: "20px",
                               backgroundColor: task.color,
-                              borderRadius: "3px",
+                              borderRadius: "var(--radius, 4px)",
+                              border: "1px solid var(--border, #444B57)",
                             }}
                           />
                         </button>
                       </Menu.Target>
-                      <Menu.Dropdown>
-                        <div style={{ padding: "8px" }}>
+                      <Menu.Dropdown
+                        styles={{
+                          dropdown: {
+                            backgroundColor: "var(--bg1, #212225)",
+                            border: "1px solid var(--border, #444B57)",
+                          },
+                        }}
+                      >
+                        <div style={{ padding: "12px" }}>
                           <ColorInput
                             value={task.color}
                             onChange={(color) =>
@@ -369,13 +441,30 @@ export const ganttBlock = createReactBlockSpec(
                             }
                             format="hex"
                             swatches={defaultColors}
+                            styles={{
+                              input: {
+                                backgroundColor: "var(--bg2, #252525)",
+                                borderColor: "var(--border, #444B57)",
+                                color: "var(--text1, #e0e0e0)",
+                              },
+                            }}
                           />
                         </div>
-                        <Menu.Divider />
+                        <Menu.Divider
+                          style={{ borderColor: "var(--border, #444B57)" }}
+                        />
                         <Menu.Item
-                          color="red"
+                          color="var(--red, #e74c3c)"
                           leftSection={<MdDelete size={16} />}
                           onClick={() => deleteTask(task.id)}
+                          styles={{
+                            item: {
+                              color: "var(--text1, #e0e0e0)",
+                              "&:hover": {
+                                backgroundColor: "var(--bg2, #252525)",
+                              },
+                            },
+                          }}
                         >
                           Delete
                         </Menu.Item>
@@ -387,130 +476,144 @@ export const ganttBlock = createReactBlockSpec(
 
               {/* Right side - Timeline */}
               <div
-                style={{ flex: 1, minWidth: 0, overflow: "auto" }}
+                style={{
+                  flex: 1,
+                  overflowX: "auto",
+                  overflowY: "auto",
+                  backgroundColor: "var(--bg0, #17181A)",
+                }}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
               >
-                {/* Month headers */}
-                <div
-                  style={{
-                    height: "60px",
-                    borderBottom: "1px solid #e0e0e0",
-                    display: "flex",
-                    position: "relative",
-                  }}
-                >
-                  {generateMonthHeaders().map((header, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        width: `${header.width}%`,
-                        borderRight: "1px solid #e0e0e0",
-                        padding: "8px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#666",
-                      }}
-                    >
-                      {header.month}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Task bars */}
-                <div style={{ position: "relative", minHeight: "200px" }}>
-                  {ganttData.tasks.map((task, idx) => {
-                    const startDate = new Date(task.start);
-                    const endDate = new Date(task.end);
-                    const left = dateToPosition(startDate);
-                    const width =
-                      dateToPosition(endDate) - dateToPosition(startDate);
-
-                    return (
+                <div style={{ minWidth: "800px" }}>
+                  {/* Month headers */}
+                  <div
+                    style={{
+                      height: "60px",
+                      borderBottom: "1px solid var(--border, #444B57)",
+                      display: "flex",
+                      position: "relative",
+                      backgroundColor: "var(--bg1, #212225)",
+                    }}
+                  >
+                    {generateMonthHeaders().map((header, idx) => (
                       <div
-                        key={task.id}
+                        key={idx}
                         style={{
-                          position: "absolute",
-                          top: `${idx * 50}px`,
-                          left: `${left}%`,
-                          width: `${width}%`,
-                          height: "50px",
-                          padding: "10px 0",
-                          borderBottom: "1px solid #f0f0f0",
+                          width: `${header.width}%`,
+                          borderRight: "1px solid var(--border, #444B57)",
+                          padding: "16px",
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "var(--text0, #ffffff)",
                         }}
                       >
+                        {header.month}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Task bars */}
+                  <div style={{ position: "relative", minHeight: "400px" }}>
+                    {ganttData.tasks.map((task, idx) => {
+                      const startDate = new Date(task.start);
+                      const endDate = new Date(task.end);
+                      const left = dateToPosition(startDate);
+                      const width =
+                        dateToPosition(endDate) - dateToPosition(startDate);
+
+                      return (
                         <div
+                          key={task.id}
                           style={{
-                            position: "relative",
-                            height: "30px",
-                            backgroundColor: task.color,
-                            borderRadius: "6px",
-                            cursor: draggedTask ? "grabbing" : "grab",
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "0 8px",
-                            color: "#fff",
-                            fontSize: "12px",
-                            fontWeight: 500,
-                            opacity: 0.9,
-                            transition: draggedTask ? "none" : "all 0.2s",
+                            position: "absolute",
+                            top: `${idx * 56}px`,
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            height: "56px",
+                            padding: "12px 0",
+                            borderBottom: "1px solid var(--border, #444B57)",
                           }}
-                          onMouseDown={(e) => handleMouseDown(e, task.id, "move")}
                         >
                           <div
                             style={{
-                              position: "absolute",
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: "8px",
-                              cursor: "ew-resize",
-                              backgroundColor: "rgba(0,0,0,0.2)",
-                              borderRadius: "6px 0 0 6px",
+                              position: "relative",
+                              height: "32px",
+                              backgroundColor: task.color,
+                              borderRadius: "var(--radius, 4px)",
+                              cursor: draggedTask ? "grabbing" : "grab",
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "0 12px",
+                              color: "#ffffff",
+                              fontSize: "13px",
+                              fontWeight: 500,
+                              opacity: 0.95,
+                              transition: draggedTask ? "none" : "all 0.2s",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
                             }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              handleMouseDown(e, task.id, "resize-start");
-                            }}
-                          />
-                          <div
-                            style={{
-                              position: "absolute",
-                              right: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: "8px",
-                              cursor: "ew-resize",
-                              backgroundColor: "rgba(0,0,0,0.2)",
-                              borderRadius: "0 6px 6px 0",
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              handleMouseDown(e, task.id, "resize-end");
-                            }}
-                          />
-                          <span
-                            style={{
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
+                            onMouseDown={(e) =>
+                              handleMouseDown(e, task.id, "move")
+                            }
                           >
-                            {new Date(task.start).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}{" "}
-                            -{" "}
-                            {new Date(task.end).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: "10px",
+                                cursor: "ew-resize",
+                                backgroundColor: "rgba(0,0,0,0.2)",
+                                borderRadius: "var(--radius, 4px) 0 0 var(--radius, 4px)",
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                handleMouseDown(e, task.id, "resize-start");
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: "10px",
+                                cursor: "ew-resize",
+                                backgroundColor: "rgba(0,0,0,0.2)",
+                                borderRadius: "0 var(--radius, 4px) var(--radius, 4px) 0",
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                handleMouseDown(e, task.id, "resize-end");
+                              }}
+                            />
+                            <span
+                              style={{
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {new Date(task.start).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}{" "}
+                              -{" "}
+                              {new Date(task.end).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
