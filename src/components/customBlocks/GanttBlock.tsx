@@ -1,44 +1,22 @@
 import { defaultProps } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
-import { useEffect, useRef, useState } from "react";
-import { Menu, Button, TextInput, Group, Modal } from "@mantine/core";
-import { MdAdd, MdEdit, MdDelete, MdMoreVert } from "react-icons/md";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
-} from "chart.js";
-import { Bar } from "react-chartjs-2";
-import "chartjs-adapter-date-fns";
-
+import { useEffect, useState } from "react";
+import { Menu, Button, TextInput, ColorInput } from "@mantine/core";
+import { MdAdd, MdDragIndicator, MdDelete } from "react-icons/md";
 import "../../index.css";
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale
-);
 
 interface GanttTask {
   id: string;
   name: string;
   start: string;
   end: string;
-  color?: string;
+  color: string;
 }
 
 interface GanttData {
   tasks: GanttTask[];
+  viewStart?: string;
+  viewEnd?: string;
 }
 
 const defaultColors = [
@@ -59,17 +37,7 @@ export const ganttBlock = createReactBlockSpec(
       textAlignment: defaultProps.textAlignment,
       data: {
         default: JSON.stringify({
-          tasks: [
-            {
-              id: "1",
-              name: "Task 1",
-              start: new Date().toISOString().split("T")[0],
-              end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0],
-              color: defaultColors[0],
-            },
-          ],
+          tasks: [],
         } as GanttData),
       },
     },
@@ -77,7 +45,6 @@ export const ganttBlock = createReactBlockSpec(
   },
   {
     render: (props) => {
-      const chartRef = useRef<any>(null);
       const [ganttData, setGanttData] = useState<GanttData>(() => {
         try {
           return JSON.parse(props.block.props.data);
@@ -85,13 +52,14 @@ export const ganttBlock = createReactBlockSpec(
           return { tasks: [] };
         }
       });
-      const [isModalOpen, setIsModalOpen] = useState(false);
-      const [editingTask, setEditingTask] = useState<GanttTask | null>(null);
-      const [taskForm, setTaskForm] = useState({
-        name: "",
-        start: "",
-        end: "",
-      });
+
+      const [draggedTask, setDraggedTask] = useState<{
+        taskId: string;
+        type: "move" | "resize-start" | "resize-end";
+        startX: number;
+        initialStart: Date;
+        initialEnd: Date;
+      } | null>(null);
 
       useEffect(() => {
         const newData = JSON.stringify(ganttData);
@@ -103,116 +71,178 @@ export const ganttBlock = createReactBlockSpec(
         }
       }, [ganttData]);
 
-      const openAddTaskModal = () => {
-        setEditingTask(null);
-        setTaskForm({
-          name: "",
-          start: new Date().toISOString().split("T")[0],
-          end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-        });
-        setIsModalOpen(true);
-      };
-
-      const openEditTaskModal = (task: GanttTask) => {
-        setEditingTask(task);
-        setTaskForm({
-          name: task.name,
-          start: task.start,
-          end: task.end,
-        });
-        setIsModalOpen(true);
-      };
-
-      const handleSaveTask = () => {
-        if (!taskForm.name || !taskForm.start || !taskForm.end) return;
-
-        if (editingTask) {
-          setGanttData({
-            tasks: ganttData.tasks.map((t) =>
-              t.id === editingTask.id
-                ? { ...t, ...taskForm }
-                : t
-            ),
-          });
-        } else {
-          const newTask: GanttTask = {
-            id: Date.now().toString(),
-            ...taskForm,
-            color:
-              defaultColors[ganttData.tasks.length % defaultColors.length],
-          };
-          setGanttData({
-            tasks: [...ganttData.tasks, newTask],
-          });
+      // Calculate date range
+      const getDateRange = () => {
+        if (ganttData.tasks.length === 0) {
+          const today = new Date();
+          const endDate = new Date(today);
+          endDate.setDate(today.getDate() + 30);
+          return { start: today, end: endDate };
         }
-        setIsModalOpen(false);
+
+        const dates = ganttData.tasks.flatMap((t) => [
+          new Date(t.start),
+          new Date(t.end),
+        ]);
+        const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+        const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+        // Add padding
+        minDate.setDate(minDate.getDate() - 3);
+        maxDate.setDate(maxDate.getDate() + 7);
+
+        return { start: minDate, end: maxDate };
       };
 
-      const handleDeleteTask = (taskId: string) => {
+      const dateRange = getDateRange();
+      const totalDays = Math.ceil(
+        (dateRange.end.getTime() - dateRange.start.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      const dateToPosition = (date: Date) => {
+        const days =
+          (date.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24);
+        return (days / totalDays) * 100;
+      };
+
+      const positionToDate = (position: number) => {
+        const days = (position / 100) * totalDays;
+        const date = new Date(dateRange.start);
+        date.setDate(date.getDate() + days);
+        return date;
+      };
+
+      const addTask = () => {
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setDate(today.getDate() + 7);
+
+        const newTask: GanttTask = {
+          id: Date.now().toString(),
+          name: "New Task",
+          start: today.toISOString().split("T")[0],
+          end: endDate.toISOString().split("T")[0],
+          color: defaultColors[ganttData.tasks.length % defaultColors.length],
+        };
+
         setGanttData({
+          ...ganttData,
+          tasks: [...ganttData.tasks, newTask],
+        });
+      };
+
+      const updateTask = (taskId: string, updates: Partial<GanttTask>) => {
+        setGanttData({
+          ...ganttData,
+          tasks: ganttData.tasks.map((t) =>
+            t.id === taskId ? { ...t, ...updates } : t
+          ),
+        });
+      };
+
+      const deleteTask = (taskId: string) => {
+        setGanttData({
+          ...ganttData,
           tasks: ganttData.tasks.filter((t) => t.id !== taskId),
         });
       };
 
-      const chartData = {
-        labels: ganttData.tasks.map((task) => task.name),
-        datasets: [
-          {
-            label: "Tasks",
-            data: ganttData.tasks.map((task) => {
-              const start = new Date(task.start).getTime();
-              const end = new Date(task.end).getTime();
-              return [start, end];
-            }),
-            backgroundColor: ganttData.tasks.map(
-              (task) => task.color || "#507aff"
-            ),
-            borderWidth: 1,
-            borderColor: ganttData.tasks.map(
-              (task) => task.color || "#507aff"
-            ),
-            borderSkipped: false,
-          },
-        ],
+      const handleMouseDown = (
+        e: React.MouseEvent,
+        taskId: string,
+        type: "move" | "resize-start" | "resize-end"
+      ) => {
+        e.preventDefault();
+        const task = ganttData.tasks.find((t) => t.id === taskId);
+        if (!task) return;
+
+        setDraggedTask({
+          taskId,
+          type,
+          startX: e.clientX,
+          initialStart: new Date(task.start),
+          initialEnd: new Date(task.end),
+        });
       };
 
-      const options = {
-        indexAxis: "y" as const,
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
-          title: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: (context: any) => {
-                const task = ganttData.tasks[context.dataIndex];
-                return `${task.start} → ${task.end}`;
-              },
-            },
-          },
-        },
-        scales: {
-          x: {
-            type: "time" as const,
-            time: {
-              unit: "day" as const,
-            },
-            title: {
-              display: true,
-              text: "Timeline",
-            },
-          },
-          y: {
-            beginAtZero: true,
-          },
-        },
+      const handleMouseMove = (e: React.MouseEvent) => {
+        if (!draggedTask) return;
+
+        const container = e.currentTarget as HTMLElement;
+        const rect = container.getBoundingClientRect();
+        const deltaX = e.clientX - draggedTask.startX;
+        const deltaPercent = (deltaX / rect.width) * 100;
+        const deltaDays = (deltaPercent / 100) * totalDays;
+
+        const task = ganttData.tasks.find((t) => t.id === draggedTask.taskId);
+        if (!task) return;
+
+        let newStart = new Date(draggedTask.initialStart);
+        let newEnd = new Date(draggedTask.initialEnd);
+
+        if (draggedTask.type === "move") {
+          newStart.setDate(newStart.getDate() + deltaDays);
+          newEnd.setDate(newEnd.getDate() + deltaDays);
+        } else if (draggedTask.type === "resize-start") {
+          newStart.setDate(newStart.getDate() + deltaDays);
+          if (newStart >= newEnd) {
+            newStart = new Date(newEnd);
+            newStart.setDate(newStart.getDate() - 1);
+          }
+        } else if (draggedTask.type === "resize-end") {
+          newEnd.setDate(newEnd.getDate() + deltaDays);
+          if (newEnd <= newStart) {
+            newEnd = new Date(newStart);
+            newEnd.setDate(newEnd.getDate() + 1);
+          }
+        }
+
+        updateTask(draggedTask.taskId, {
+          start: newStart.toISOString().split("T")[0],
+          end: newEnd.toISOString().split("T")[0],
+        });
+      };
+
+      const handleMouseUp = () => {
+        setDraggedTask(null);
+      };
+
+      // Generate month headers
+      const generateMonthHeaders = () => {
+        const headers: { month: string; width: number }[] = [];
+        let currentDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+
+        while (currentDate < endDate) {
+          const monthStart = new Date(currentDate);
+          const monthEnd = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            0
+          );
+          const clampedEnd =
+            monthEnd > endDate ? new Date(endDate) : monthEnd;
+
+          const startPos = dateToPosition(monthStart);
+          const endPos = dateToPosition(clampedEnd);
+
+          headers.push({
+            month: monthStart.toLocaleDateString("en-US", {
+              month: "short",
+              year: "numeric",
+            }),
+            width: endPos - startPos,
+          });
+
+          currentDate = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            1
+          );
+        }
+
+        return headers;
       };
 
       return (
@@ -237,12 +267,12 @@ export const ganttBlock = createReactBlockSpec(
             }}
           >
             <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
-              Gantt Chart
+              Timeline
             </h3>
             <Button
               size="xs"
               leftSection={<MdAdd size={16} />}
-              onClick={openAddTaskModal}
+              onClick={addTask}
             >
               Add Task
             </Button>
@@ -259,54 +289,93 @@ export const ganttBlock = createReactBlockSpec(
               No tasks yet. Click "Add Task" to get started.
             </div>
           ) : (
-            <>
-              <div style={{ height: `${Math.max(200, ganttData.tasks.length * 50)}px` }}>
-                <Bar ref={chartRef} data={chartData} options={options} />
-              </div>
-
-              <div style={{ marginTop: "16px" }}>
+            <div style={{ display: "flex", gap: "0" }}>
+              {/* Left side - Task names */}
+              <div
+                style={{
+                  width: "200px",
+                  flexShrink: 0,
+                  borderRight: "1px solid #e0e0e0",
+                }}
+              >
+                <div
+                  style={{
+                    height: "60px",
+                    padding: "8px",
+                    borderBottom: "1px solid #e0e0e0",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Task Name
+                </div>
                 {ganttData.tasks.map((task) => (
                   <div
                     key={task.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      height: "50px",
                       padding: "8px",
                       borderBottom: "1px solid #f0f0f0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div
-                        style={{
-                          width: "12px",
-                          height: "12px",
-                          backgroundColor: task.color,
-                          borderRadius: "2px",
-                        }}
-                      />
-                      <span style={{ fontWeight: 500 }}>{task.name}</span>
-                      <span style={{ color: "#666", fontSize: "14px" }}>
-                        {task.start} → {task.end}
-                      </span>
-                    </div>
+                    <MdDragIndicator
+                      size={16}
+                      style={{ color: "#999", cursor: "grab" }}
+                    />
+                    <TextInput
+                      value={task.name}
+                      onChange={(e) =>
+                        updateTask(task.id, { name: e.target.value })
+                      }
+                      size="xs"
+                      styles={{
+                        input: {
+                          border: "none",
+                          padding: "4px",
+                          fontSize: "14px",
+                        },
+                      }}
+                    />
                     <Menu withinPortal={false}>
                       <Menu.Target>
-                        <Button variant="subtle" size="xs" p={4}>
-                          <MdMoreVert size={16} />
-                        </Button>
+                        <button
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "4px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "16px",
+                              height: "16px",
+                              backgroundColor: task.color,
+                              borderRadius: "3px",
+                            }}
+                          />
+                        </button>
                       </Menu.Target>
                       <Menu.Dropdown>
+                        <div style={{ padding: "8px" }}>
+                          <ColorInput
+                            value={task.color}
+                            onChange={(color) =>
+                              updateTask(task.id, { color })
+                            }
+                            format="hex"
+                            swatches={defaultColors}
+                          />
+                        </div>
+                        <Menu.Divider />
                         <Menu.Item
-                          leftSection={<MdEdit size={16} />}
-                          onClick={() => openEditTaskModal(task)}
-                        >
-                          Edit
-                        </Menu.Item>
-                        <Menu.Item
-                          leftSection={<MdDelete size={16} />}
                           color="red"
-                          onClick={() => handleDeleteTask(task.id)}
+                          leftSection={<MdDelete size={16} />}
+                          onClick={() => deleteTask(task.id)}
                         >
                           Delete
                         </Menu.Item>
@@ -315,50 +384,137 @@ export const ganttBlock = createReactBlockSpec(
                   </div>
                 ))}
               </div>
-            </>
-          )}
 
-          <Modal
-            opened={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            title={editingTask ? "Edit Task" : "Add Task"}
-          >
-            <TextInput
-              label="Task Name"
-              placeholder="Enter task name"
-              value={taskForm.name}
-              onChange={(e) =>
-                setTaskForm({ ...taskForm, name: e.target.value })
-              }
-              mb="md"
-            />
-            <TextInput
-              label="Start Date"
-              type="date"
-              value={taskForm.start}
-              onChange={(e) =>
-                setTaskForm({ ...taskForm, start: e.target.value })
-              }
-              mb="md"
-            />
-            <TextInput
-              label="End Date"
-              type="date"
-              value={taskForm.end}
-              onChange={(e) =>
-                setTaskForm({ ...taskForm, end: e.target.value })
-              }
-              mb="md"
-            />
-            <Group justify="flex-end" mt="md">
-              <Button variant="subtle" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveTask}>
-                {editingTask ? "Update" : "Add"}
-              </Button>
-            </Group>
-          </Modal>
+              {/* Right side - Timeline */}
+              <div
+                style={{ flex: 1, minWidth: 0, overflow: "auto" }}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                {/* Month headers */}
+                <div
+                  style={{
+                    height: "60px",
+                    borderBottom: "1px solid #e0e0e0",
+                    display: "flex",
+                    position: "relative",
+                  }}
+                >
+                  {generateMonthHeaders().map((header, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        width: `${header.width}%`,
+                        borderRight: "1px solid #e0e0e0",
+                        padding: "8px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "#666",
+                      }}
+                    >
+                      {header.month}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Task bars */}
+                <div style={{ position: "relative", minHeight: "200px" }}>
+                  {ganttData.tasks.map((task, idx) => {
+                    const startDate = new Date(task.start);
+                    const endDate = new Date(task.end);
+                    const left = dateToPosition(startDate);
+                    const width =
+                      dateToPosition(endDate) - dateToPosition(startDate);
+
+                    return (
+                      <div
+                        key={task.id}
+                        style={{
+                          position: "absolute",
+                          top: `${idx * 50}px`,
+                          left: `${left}%`,
+                          width: `${width}%`,
+                          height: "50px",
+                          padding: "10px 0",
+                          borderBottom: "1px solid #f0f0f0",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "relative",
+                            height: "30px",
+                            backgroundColor: task.color,
+                            borderRadius: "6px",
+                            cursor: draggedTask ? "grabbing" : "grab",
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "0 8px",
+                            color: "#fff",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            opacity: 0.9,
+                            transition: draggedTask ? "none" : "all 0.2s",
+                          }}
+                          onMouseDown={(e) => handleMouseDown(e, task.id, "move")}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: "8px",
+                              cursor: "ew-resize",
+                              backgroundColor: "rgba(0,0,0,0.2)",
+                              borderRadius: "6px 0 0 6px",
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              handleMouseDown(e, task.id, "resize-start");
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: "8px",
+                              cursor: "ew-resize",
+                              backgroundColor: "rgba(0,0,0,0.2)",
+                              borderRadius: "0 6px 6px 0",
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              handleMouseDown(e, task.id, "resize-end");
+                            }}
+                          />
+                          <span
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {new Date(task.start).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            -{" "}
+                            {new Date(task.end).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     },
