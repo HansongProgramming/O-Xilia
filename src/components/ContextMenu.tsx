@@ -25,7 +25,6 @@ export default function ContextMenus({
   createCategory,
   createPage,
   deleteCategory,
-  updateCategoryName,
   setCategoryFolder,
 }: ContextMenusProps) {
   if (!contextMenu.visible) return null;
