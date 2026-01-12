@@ -2,7 +2,7 @@ import { insertOrUpdateBlockForSlashMenu } from "@blocknote/core/extensions";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
-import { MdOutlineDraw } from "react-icons/md";
+import { MdOutlineDraw, MdTimeline } from "react-icons/md";
 import { TbRoute } from "react-icons/tb";
 
 /* --------------------------------------------------------------- */
@@ -22,7 +22,7 @@ export const insertWhiteboardBlockItem = (editor: any) => ({
 });
 
 /* --------------------------------------------------------------- */
-/* alert block item (your existing one)                            */
+/* alert block item                                                */
 /* --------------------------------------------------------------- */
 export const insertAlertBlockItem = (editor: any) => ({
   title: "Insert Alert Block",
@@ -37,6 +37,9 @@ export const insertAlertBlockItem = (editor: any) => ({
   subtext: "Insert a customizable alert block.",
 });
 
+/* --------------------------------------------------------------- */
+/* flow block item                                                 */
+/* --------------------------------------------------------------- */
 export const insertFlowBlockItem = (editor: any) => ({
   title: "Flow diagram",
   onItemClick: () =>
@@ -51,6 +54,36 @@ export const insertFlowBlockItem = (editor: any) => ({
 });
 
 /* --------------------------------------------------------------- */
+/* gantt chart block item                                          */
+/* --------------------------------------------------------------- */
+export const insertGanttBlockItem = (editor: any) => ({
+  title: "Gantt Chart",
+  onItemClick: () =>
+    insertOrUpdateBlockForSlashMenu(editor, {
+      type: "gantt" as any,
+      props: {
+        data: JSON.stringify({
+          tasks: [
+            {
+              id: "1",
+              name: "Task 1",
+              start: new Date().toISOString().split("T")[0],
+              end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0],
+              color: "#507aff",
+            },
+          ],
+        }),
+      },
+    } as any),
+  aliases: ["gantt", "timeline", "project", "schedule", "chart"],
+  group: "Media",
+  icon: <MdTimeline size={18} />,
+  subtext: "Insert a project timeline Gantt chart.",
+});
+
+/* --------------------------------------------------------------- */
 /* combined list                                                   */
 /* --------------------------------------------------------------- */
 export const getCustomSlashMenuItems = (
@@ -59,5 +92,6 @@ export const getCustomSlashMenuItems = (
   ...getDefaultReactSlashMenuItems(editor),
   insertAlertBlockItem(editor),
   insertWhiteboardBlockItem(editor),
-  insertFlowBlockItem(editor),   
+  insertFlowBlockItem(editor),
+  insertGanttBlockItem(editor),
 ];
