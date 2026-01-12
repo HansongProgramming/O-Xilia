@@ -303,29 +303,6 @@ export const ganttBlock = createReactBlockSpec(
                             >
                                 Add Task
                             </Button>
-                            <Button
-                                size="sm"
-                                variant="subtle"
-                                onClick={() => {
-                                    props.editor.updateBlock(props.block, {
-                                        type: "gantt",
-                                        props: { data: props.block.props.data },
-                                    });
-                                    // This will trigger a re-render and close fullscreen
-                                    const container = document.querySelector('.gantt-chart-container');
-                                    if (container) {
-                                        (container as HTMLElement).style.position = 'relative';
-                                    }
-                                }}
-                                styles={{
-                                    root: {
-                                        color: "var(--text1, #e0e0e0)",
-                                        backgroundColor: "var(--bg2, #252525)",
-                                    },
-                                }}
-                            >
-                                Close
-                            </Button>
                         </div>
                     </div>
 
