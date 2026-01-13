@@ -1,10 +1,47 @@
 // components/SidebarCalendar.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Cloud, CloudRain, Sun, CloudSnow, CloudDrizzle } from "lucide-react";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SidebarCalendar() {
   const [date, setDate] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [weather, setWeather] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+          );
+          const data = await response.json();
+          setWeather(data.current_weather.weathercode);
+        } catch (error) {
+          console.error("Weather fetch failed:", error);
+        }
+      },
+      () => setWeather("0")
+    );
+  }, []);
+
+  const getWeatherIcon = () => {
+    if (weather === null) return <Sun className="w-5 h-5" />;
+    const code = parseInt(weather);
+    if (code === 0 || code === 1) return <Sun className="w-5 h-5" />;
+    if (code === 2 || code === 3) return <Cloud className="w-5 h-5" />;
+    if (code >= 51 && code <= 67) return <CloudDrizzle className="w-5 h-5" />;
+    if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5" />;
+    if (code >= 80) return <CloudRain className="w-5 h-5" />;
+    return <Cloud className="w-5 h-5" />;
+  };
 
   const year = date.getFullYear();
   const month = date.getMonth();
