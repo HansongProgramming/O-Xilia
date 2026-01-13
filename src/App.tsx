@@ -1,5 +1,6 @@
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
+import "@blocknote/react/style.css";
 import "./index.css";
 
 import { useState } from "react";

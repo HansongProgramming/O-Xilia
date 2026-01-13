@@ -44,6 +44,9 @@ export function useEditor(
       const e = BlockNoteEditor.create({
         schema,
         initialContent: safeBlocks,
+        defaultStyles: true,
+        // Enable code block syntax highlighting
+        trailingBlock: false,
       });
 
       setEditor(e);
