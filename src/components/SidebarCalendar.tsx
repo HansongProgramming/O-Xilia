@@ -51,6 +51,17 @@ export default function SidebarCalendar() {
 
   return (
     <div className="calendar">
+      <div className="time-weather-bar">
+        <span className="current-time">
+          {currentTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </span>
+        <span className="weather-icon">{getWeatherIcon()}</span>
+      </div>
+
       <div className="calendar-header">
         <button onClick={() => setDate(new Date(year, month - 1, 1))}>◀</button>
         <span>
