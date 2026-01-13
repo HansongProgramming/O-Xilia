@@ -1,6 +1,6 @@
 import { defaultProps } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Menu, Button, TextInput, ColorInput } from "@mantine/core";
 import { MdAdd, MdDragIndicator, MdDelete } from "react-icons/md";
 import "../../index.css";
@@ -62,6 +62,8 @@ export const ganttBlock = createReactBlockSpec(
                 initialStart: Date;
                 initialEnd: Date;
             } | null>(null);
+
+            const scrollContainerRef = useRef<HTMLDivElement>(null);
 
             useEffect(() => {
                 const newData = JSON.stringify(ganttData);
@@ -276,6 +278,24 @@ export const ganttBlock = createReactBlockSpec(
             const months = generateMonthHeaders(days);
             const totalWidth = days.length * DAY_WIDTH;
 
+            // Find today's position
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayIndex = days.findIndex(day => {
+                const d = new Date(day.date);
+                d.setHours(0, 0, 0, 0);
+                return d.getTime() === today.getTime();
+            });
+            const todayPosition = todayIndex >= 0 ? todayIndex * DAY_WIDTH : -1;
+
+            // Scroll to today on mount
+            useEffect(() => {
+                if (scrollContainerRef.current && todayPosition >= 0 && ganttData.tasks.length > 0) {
+                    const scrollLeft = todayPosition - (scrollContainerRef.current.clientWidth / 2);
+                    scrollContainerRef.current.scrollLeft = Math.max(0, scrollLeft);
+                }
+            }, []);
+
             return (
                 <div
                     className="gantt-chart-container"
@@ -484,6 +504,7 @@ export const ganttBlock = createReactBlockSpec(
 
                             {/* Right side - Timeline */}
                             <div
+                                ref={scrollContainerRef}
                                 style={{
                                     flex: 1,
                                     overflowX: "auto",
@@ -591,6 +612,36 @@ export const ganttBlock = createReactBlockSpec(
                                                 />
                                             );
                                         })}
+
+                                        {/* Today indicator line */}
+                                        {todayPosition >= 0 && (
+                                            <div
+                                                style={{
+                                                    position: "absolute",
+                                                    left: `${todayPosition}px`,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: "2px",
+                                                    backgroundColor: "#ffffff",
+                                                    zIndex: 100,
+                                                    boxShadow: "0 0 8px rgba(255, 255, 255, 0.5)",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        position: "absolute",
+                                                        top: "-8px",
+                                                        left: "50%",
+                                                        transform: "translateX(-50%)",
+                                                        width: "0",
+                                                        height: "0",
+                                                        borderLeft: "6px solid transparent",
+                                                        borderRight: "6px solid transparent",
+                                                        borderTop: "8px solid #ffffff",
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
 
                                         {ganttData.tasks.map((task, idx) => {
                                             const startDate = new Date(task.start);
