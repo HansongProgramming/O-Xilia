@@ -108,13 +108,6 @@ export const ganttBlock = createReactBlockSpec(
                 return days * DAY_WIDTH;
             };
 
-            const pixelsToDate = (pixels: number) => {
-                const days = pixels / DAY_WIDTH;
-                const newDate = new Date(dateRange.start);
-                newDate.setDate(newDate.getDate() + days);
-                return newDate;
-            };
-
             const addTask = () => {
                 const today = new Date();
                 const endDate = new Date(today);
