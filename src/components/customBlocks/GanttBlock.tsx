@@ -106,12 +106,6 @@ export const ganttBlock = createReactBlockSpec(
                 return (days / totalDays) * 100;
             };
 
-            const positionToDate = (position: number) => {
-                const days = (position / 100) * totalDays;
-                const date = new Date(dateRange.start);
-                date.setDate(date.getDate() + days);
-                return date;
-            };
 
             const addTask = () => {
                 const today = new Date();
@@ -208,12 +202,15 @@ export const ganttBlock = createReactBlockSpec(
                 setDraggedTask(null);
             };
 
-            // Generate month headers
-            const generateMonthHeaders = () => {
-                const headers: { month: string; width: number }[] = [];
+            // Generate month and day headers
+            const generateTimelineHeaders = () => {
+                const months: { month: string; days: number; startPos: number }[] = [];
+                const days: { day: string; date: number; pos: number }[] = [];
+                
                 let currentDate = new Date(dateRange.start);
                 const endDate = new Date(dateRange.end);
 
+                // Generate months
                 while (currentDate < endDate) {
                     const monthStart = new Date(currentDate);
                     const monthEnd = new Date(
@@ -221,18 +218,19 @@ export const ganttBlock = createReactBlockSpec(
                         currentDate.getMonth() + 1,
                         0
                     );
-                    const clampedEnd =
-                        monthEnd > endDate ? new Date(endDate) : monthEnd;
+                    const clampedEnd = monthEnd > endDate ? new Date(endDate) : monthEnd;
 
-                    const startPos = dateToPosition(monthStart);
-                    const endPos = dateToPosition(clampedEnd);
+                    const daysInMonth = Math.ceil(
+                        (clampedEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24)
+                    ) + 1;
 
-                    headers.push({
+                    months.push({
                         month: monthStart.toLocaleDateString("en-US", {
                             month: "short",
                             year: "numeric",
                         }),
-                        width: endPos - startPos,
+                        days: daysInMonth,
+                        startPos: dateToPosition(monthStart),
                     });
 
                     currentDate = new Date(
@@ -242,8 +240,31 @@ export const ganttBlock = createReactBlockSpec(
                     );
                 }
 
-                return headers;
+                // Generate days
+                currentDate = new Date(dateRange.start);
+                while (currentDate <= endDate) {
+                    const dayName = currentDate.toLocaleDateString("en-US", {
+                        weekday: "short",
+                    });
+                    const dayNumber = currentDate.getDate();
+                    
+                    days.push({
+                        day: dayName,
+                        date: dayNumber,
+                        pos: dateToPosition(currentDate),
+                    });
+
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                return { months, days };
             };
+
+            const { months, days } = generateTimelineHeaders();
+            const dayWidth = days.length > 0 && days.length > 1 
+                ? (days[1].pos - days[0].pos) 
+                : (100 / totalDays);
+            const timelineWidth = Math.max(1200, dayWidth * totalDays * 10);
 
             return (
                 <div
@@ -252,8 +273,8 @@ export const ganttBlock = createReactBlockSpec(
                         position: "relative",
                         width: "100%",
                         maxWidth: "100%",
-                        height: "400px",
-                        maxHeight: "400px",
+                        height: "500px",
+                        maxHeight: "500px",
                         backgroundColor: "var(--bg0, #17181A)",
                         color: "var(--text1, #e0e0e0)",
                         display: "flex",
@@ -263,7 +284,6 @@ export const ganttBlock = createReactBlockSpec(
                         border: "1px solid var(--border, #444B57)",
                         overflow: "hidden",
                     }}
-
                     contentEditable={false}
                 >
                     {/* Header */}
@@ -336,7 +356,7 @@ export const ganttBlock = createReactBlockSpec(
                             >
                                 <div
                                     style={{
-                                        height: "60px",
+                                        height: "90px",
                                         padding: "16px",
                                         borderBottom: "1px solid var(--border, #444B57)",
                                         fontWeight: 600,
@@ -464,27 +484,32 @@ export const ganttBlock = createReactBlockSpec(
                                 onMouseUp={handleMouseUp}
                                 onMouseLeave={handleMouseUp}
                             >
-                                <div style={{ minWidth: "800px" }}>
+                                <div style={{ width: `${timelineWidth}px`, minWidth: "100%" }}>
                                     {/* Month headers */}
                                     <div
                                         style={{
-                                            height: "60px",
+                                            height: "40px",
                                             borderBottom: "1px solid var(--border, #444B57)",
                                             display: "flex",
                                             position: "relative",
                                             backgroundColor: "var(--bg1, #212225)",
                                         }}
                                     >
-                                        {generateMonthHeaders().map((header, idx) => (
+                                        {months.map((header, idx) => (
                                             <div
                                                 key={idx}
                                                 style={{
-                                                    width: `${header.width}%`,
-                                                    borderRight: "1px solid var(--border, #444B57)",
-                                                    padding: "16px",
+                                                    width: `${dayWidth * header.days}%`,
+                                                    minWidth: "80px",
+                                                    borderRight: idx < months.length - 1 ? "1px solid var(--border, #444B57)" : "none",
+                                                    padding: "8px 12px",
                                                     fontSize: "13px",
                                                     fontWeight: 600,
                                                     color: "var(--text0, #ffffff)",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    whiteSpace: "nowrap",
                                                 }}
                                             >
                                                 {header.month}
@@ -492,8 +517,61 @@ export const ganttBlock = createReactBlockSpec(
                                         ))}
                                     </div>
 
+                                    {/* Day headers */}
+                                    <div
+                                        style={{
+                                            height: "50px",
+                                            borderBottom: "1px solid var(--border, #444B57)",
+                                            display: "flex",
+                                            position: "relative",
+                                            backgroundColor: "var(--bg1, #212225)",
+                                        }}
+                                    >
+                                        {days.map((day, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    width: `${dayWidth}%`,
+                                                    minWidth: "40px",
+                                                    borderRight: "1px solid var(--border, #444B57)",
+                                                    padding: "6px 4px",
+                                                    fontSize: "11px",
+                                                    color: "var(--text2, #b3b3b3)",
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "2px",
+                                                }}
+                                            >
+                                                <div style={{ fontWeight: 500, color: "var(--text1, #e0e0e0)" }}>
+                                                    {day.date}
+                                                </div>
+                                                <div style={{ fontSize: "10px" }}>
+                                                    {day.day}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     {/* Task bars */}
                                     <div style={{ position: "relative", minHeight: "400px" }}>
+                                        {/* Vertical grid lines for days */}
+                                        {days.map((day, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    position: "absolute",
+                                                    left: `${day.pos}%`,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: "1px",
+                                                    backgroundColor: "var(--border, #444B57)",
+                                                    opacity: 0.3,
+                                                }}
+                                            />
+                                        ))}
+
                                         {ganttData.tasks.map((task, idx) => {
                                             const startDate = new Date(task.start);
                                             const endDate = new Date(task.end);
@@ -572,20 +650,10 @@ export const ganttBlock = createReactBlockSpec(
                                                                 whiteSpace: "nowrap",
                                                                 overflow: "hidden",
                                                                 textOverflow: "ellipsis",
+                                                                zIndex: 1,
                                                             }}
                                                         >
-                                                            {new Date(task.start).toLocaleDateString(
-                                                                "en-US",
-                                                                {
-                                                                    month: "short",
-                                                                    day: "numeric",
-                                                                }
-                                                            )}{" "}
-                                                            -{" "}
-                                                            {new Date(task.end).toLocaleDateString("en-US", {
-                                                                month: "short",
-                                                                day: "numeric",
-                                                            })}
+                                                            {task.name}
                                                         </span>
                                                     </div>
                                                 </div>
