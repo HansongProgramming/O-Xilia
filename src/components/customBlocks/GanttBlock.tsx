@@ -30,6 +30,8 @@ const defaultColors = [
     "#3498db",
 ];
 
+const DAY_WIDTH = 50; // Fixed pixel width for each day
+
 export const ganttBlock = createReactBlockSpec(
     {
         type: "gantt",
@@ -76,7 +78,7 @@ export const ganttBlock = createReactBlockSpec(
                 if (ganttData.tasks.length === 0) {
                     const today = new Date();
                     const endDate = new Date(today);
-                    endDate.setDate(today.getDate() + 30);
+                    endDate.setMonth(today.getMonth() + 3);
                     return { start: today, end: endDate };
                 }
 
@@ -87,25 +89,29 @@ export const ganttBlock = createReactBlockSpec(
                 const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
                 const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 
-                // Add padding
-                minDate.setDate(minDate.getDate() - 3);
-                maxDate.setDate(maxDate.getDate() + 7);
+                // Add padding - start from beginning of month
+                const startDate = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+                // End at end of next month after max date
+                const endDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 2, 0);
 
-                return { start: minDate, end: maxDate };
+                return { start: startDate, end: endDate };
             };
 
             const dateRange = getDateRange();
-            const totalDays = Math.ceil(
-                (dateRange.end.getTime() - dateRange.start.getTime()) /
-                (1000 * 60 * 60 * 24)
-            );
 
-            const dateToPosition = (date: Date) => {
-                const days =
-                    (date.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24);
-                return (days / totalDays) * 100;
+            const dateToPixels = (date: Date) => {
+                const days = Math.floor(
+                    (date.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)
+                );
+                return days * DAY_WIDTH;
             };
 
+            const pixelsToDate = (pixels: number) => {
+                const days = pixels / DAY_WIDTH;
+                const newDate = new Date(dateRange.start);
+                newDate.setDate(newDate.getDate() + days);
+                return newDate;
+            };
 
             const addTask = () => {
                 const today = new Date();
@@ -163,11 +169,8 @@ export const ganttBlock = createReactBlockSpec(
             const handleMouseMove = (e: React.MouseEvent) => {
                 if (!draggedTask) return;
 
-                const container = e.currentTarget as HTMLElement;
-                const rect = container.getBoundingClientRect();
                 const deltaX = e.clientX - draggedTask.startX;
-                const deltaPercent = (deltaX / rect.width) * 100;
-                const deltaDays = (deltaPercent / 100) * totalDays;
+                const deltaDays = Math.round(deltaX / DAY_WIDTH);
 
                 const task = ganttData.tasks.find((t) => t.id === draggedTask.taskId);
                 if (!task) return;
@@ -202,69 +205,76 @@ export const ganttBlock = createReactBlockSpec(
                 setDraggedTask(null);
             };
 
-            // Generate month and day headers
-            const generateTimelineHeaders = () => {
-                const months: { month: string; days: number; startPos: number }[] = [];
-                const days: { day: string; date: number; pos: number }[] = [];
-                
+            // Generate all days in the date range
+            const generateDays = () => {
+                const days: { date: Date; dayOfWeek: string; dayOfMonth: number }[] = [];
                 let currentDate = new Date(dateRange.start);
                 const endDate = new Date(dateRange.end);
 
-                // Generate months
-                while (currentDate < endDate) {
-                    const monthStart = new Date(currentDate);
-                    const monthEnd = new Date(
-                        currentDate.getFullYear(),
-                        currentDate.getMonth() + 1,
-                        0
-                    );
-                    const clampedEnd = monthEnd > endDate ? new Date(endDate) : monthEnd;
-
-                    const daysInMonth = Math.ceil(
-                        (clampedEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24)
-                    ) + 1;
-
-                    months.push({
-                        month: monthStart.toLocaleDateString("en-US", {
-                            month: "short",
-                            year: "numeric",
-                        }),
-                        days: daysInMonth,
-                        startPos: dateToPosition(monthStart),
-                    });
-
-                    currentDate = new Date(
-                        currentDate.getFullYear(),
-                        currentDate.getMonth() + 1,
-                        1
-                    );
-                }
-
-                // Generate days
-                currentDate = new Date(dateRange.start);
                 while (currentDate <= endDate) {
-                    const dayName = currentDate.toLocaleDateString("en-US", {
-                        weekday: "short",
-                    });
-                    const dayNumber = currentDate.getDate();
-                    
                     days.push({
-                        day: dayName,
-                        date: dayNumber,
-                        pos: dateToPosition(currentDate),
+                        date: new Date(currentDate),
+                        dayOfWeek: currentDate.toLocaleDateString("en-US", {
+                            weekday: "short",
+                        }),
+                        dayOfMonth: currentDate.getDate(),
                     });
-
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
 
-                return { months, days };
+                return days;
             };
 
-            const { months, days } = generateTimelineHeaders();
-            const dayWidth = days.length > 0 && days.length > 1 
-                ? (days[1].pos - days[0].pos) 
-                : (100 / totalDays);
-            const timelineWidth = Math.max(1200, dayWidth * totalDays * 10);
+            // Generate month headers based on actual days
+            const generateMonthHeaders = (days: ReturnType<typeof generateDays>) => {
+                const months: { month: string; year: number; dayCount: number; startIndex: number }[] = [];
+                let currentMonth = -1;
+                let currentYear = -1;
+                let dayCount = 0;
+                let startIndex = 0;
+
+                days.forEach((day, index) => {
+                    const month = day.date.getMonth();
+                    const year = day.date.getFullYear();
+
+                    if (month !== currentMonth || year !== currentYear) {
+                        if (currentMonth !== -1) {
+                            months.push({
+                                month: new Date(currentYear, currentMonth).toLocaleDateString("en-US", {
+                                    month: "short",
+                                }),
+                                year: currentYear,
+                                dayCount: dayCount,
+                                startIndex: startIndex,
+                            });
+                        }
+                        currentMonth = month;
+                        currentYear = year;
+                        dayCount = 1;
+                        startIndex = index;
+                    } else {
+                        dayCount++;
+                    }
+                });
+
+                // Add the last month
+                if (currentMonth !== -1) {
+                    months.push({
+                        month: new Date(currentYear, currentMonth).toLocaleDateString("en-US", {
+                            month: "short",
+                        }),
+                        year: currentYear,
+                        dayCount: dayCount,
+                        startIndex: startIndex,
+                    });
+                }
+
+                return months;
+            };
+
+            const days = generateDays();
+            const months = generateMonthHeaders(days);
+            const totalWidth = days.length * DAY_WIDTH;
 
             return (
                 <div
@@ -484,7 +494,7 @@ export const ganttBlock = createReactBlockSpec(
                                 onMouseUp={handleMouseUp}
                                 onMouseLeave={handleMouseUp}
                             >
-                                <div style={{ width: `${timelineWidth}px`, minWidth: "100%" }}>
+                                <div style={{ width: `${totalWidth}px` }}>
                                     {/* Month headers */}
                                     <div
                                         style={{
@@ -499,8 +509,7 @@ export const ganttBlock = createReactBlockSpec(
                                             <div
                                                 key={idx}
                                                 style={{
-                                                    width: `${dayWidth * header.days}%`,
-                                                    minWidth: "80px",
+                                                    width: `${header.dayCount * DAY_WIDTH}px`,
                                                     borderRight: idx < months.length - 1 ? "1px solid var(--border, #444B57)" : "none",
                                                     padding: "8px 12px",
                                                     fontSize: "13px",
@@ -512,7 +521,7 @@ export const ganttBlock = createReactBlockSpec(
                                                     whiteSpace: "nowrap",
                                                 }}
                                             >
-                                                {header.month}
+                                                {header.month} {header.year}
                                             </div>
                                         ))}
                                     </div>
@@ -527,57 +536,67 @@ export const ganttBlock = createReactBlockSpec(
                                             backgroundColor: "var(--bg1, #212225)",
                                         }}
                                     >
-                                        {days.map((day, idx) => (
-                                            <div
-                                                key={idx}
-                                                style={{
-                                                    width: `${dayWidth}%`,
-                                                    minWidth: "40px",
-                                                    borderRight: "1px solid var(--border, #444B57)",
-                                                    padding: "6px 4px",
-                                                    fontSize: "11px",
-                                                    color: "var(--text2, #b3b3b3)",
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    gap: "2px",
-                                                }}
-                                            >
-                                                <div style={{ fontWeight: 500, color: "var(--text1, #e0e0e0)" }}>
-                                                    {day.date}
+                                        {days.map((day, idx) => {
+                                            const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    style={{
+                                                        width: `${DAY_WIDTH}px`,
+                                                        minWidth: `${DAY_WIDTH}px`,
+                                                        borderRight: "1px solid var(--border, #444B57)",
+                                                        padding: "6px 4px",
+                                                        fontSize: "11px",
+                                                        color: isWeekend ? "var(--text3, #888888)" : "var(--text2, #b3b3b3)",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: "2px",
+                                                        backgroundColor: isWeekend ? "rgba(0,0,0,0.1)" : "transparent",
+                                                    }}
+                                                >
+                                                    <div style={{ 
+                                                        fontWeight: 500, 
+                                                        color: isWeekend ? "var(--text2, #b3b3b3)" : "var(--text1, #e0e0e0)" 
+                                                    }}>
+                                                        {day.dayOfMonth}
+                                                    </div>
+                                                    <div style={{ fontSize: "10px" }}>
+                                                        {day.dayOfWeek}
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: "10px" }}>
-                                                    {day.day}
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Task bars */}
                                     <div style={{ position: "relative", minHeight: "400px" }}>
                                         {/* Vertical grid lines for days */}
-                                        {days.map((day, idx) => (
-                                            <div
-                                                key={idx}
-                                                style={{
-                                                    position: "absolute",
-                                                    left: `${day.pos}%`,
-                                                    top: 0,
-                                                    bottom: 0,
-                                                    width: "1px",
-                                                    backgroundColor: "var(--border, #444B57)",
-                                                    opacity: 0.3,
-                                                }}
-                                            />
-                                        ))}
+                                        {days.map((day, idx) => {
+                                            const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: `${idx * DAY_WIDTH}px`,
+                                                        top: 0,
+                                                        bottom: 0,
+                                                        width: `${DAY_WIDTH}px`,
+                                                        backgroundColor: isWeekend ? "rgba(0,0,0,0.1)" : "transparent",
+                                                        borderRight: "1px solid var(--border, #444B57)",
+                                                        opacity: 0.3,
+                                                    }}
+                                                />
+                                            );
+                                        })}
 
                                         {ganttData.tasks.map((task, idx) => {
                                             const startDate = new Date(task.start);
                                             const endDate = new Date(task.end);
-                                            const left = dateToPosition(startDate);
-                                            const width =
-                                                dateToPosition(endDate) - dateToPosition(startDate);
+                                            const left = dateToPixels(startDate);
+                                            const width = dateToPixels(endDate) - left + DAY_WIDTH;
 
                                             return (
                                                 <div
@@ -585,8 +604,8 @@ export const ganttBlock = createReactBlockSpec(
                                                     style={{
                                                         position: "absolute",
                                                         top: `${idx * 56}px`,
-                                                        left: `${left}%`,
-                                                        width: `${width}%`,
+                                                        left: `${left}px`,
+                                                        width: `${width}px`,
                                                         height: "56px",
                                                         padding: "12px 0",
                                                         borderBottom: "1px solid var(--border, #444B57)",
