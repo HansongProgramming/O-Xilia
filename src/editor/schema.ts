@@ -6,9 +6,7 @@ import { ganttBlock } from "../components/customBlocks/ganttblock";
 
 export const schema = BlockNoteSchema.create({
   blockSpecs: {
-    // Include all default blocks (paragraph, heading, code, etc.)
     ...defaultBlockSpecs,
-    // Add your custom blocks
     alert: createAlert(),
     whiteboard: whiteboardBlock(),
     flow: flowBlock(),
