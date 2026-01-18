@@ -6,9 +6,6 @@ type AppData = {
 
 const isElectron = !!(window as any).storage;
 
-/**
- * Ensure every page has parentId (for nesting support)
- */
 function normalizePages(pages: any[]) {
   return pages.map((page) => ({
     ...page,
@@ -16,9 +13,6 @@ function normalizePages(pages: any[]) {
   }));
 }
 
-/**
- * Normalize categories + pages together
- */
 function normalizeCategories(categories: Category[]): Category[] {
   return categories.map((cat) => ({
     ...cat,
