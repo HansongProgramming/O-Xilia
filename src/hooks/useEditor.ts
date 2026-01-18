@@ -29,8 +29,33 @@ export function useEditor(
   const [editor, setEditor] =
     useState<BlockNoteEditor<any, any, any>>();
 
+  // Create editor only once
   useEffect(() => {
     if (isLoading) return;
+
+    const e = BlockNoteEditor.create({
+      schema,
+      initialContent: [
+        {
+          type: "paragraph",
+          content: "",
+        },
+      ],
+      defaultStyles: true,
+      trailingBlock: false,
+    });
+
+    setEditor(e);
+
+    // Cleanup: destroy editor on unmount
+    return () => {
+      e._tiptapEditor.destroy();
+    };
+  }, [isLoading]); // Added isLoading to deps
+
+  // Update content when page changes
+  useEffect(() => {
+    if (isLoading || !editor) return;
 
     const activePage = categories
       .flatMap((c) => c.pages || [])
@@ -39,26 +64,18 @@ export function useEditor(
     if (!activePage) return;
 
     const safeBlocks = sanitizeBlocks(activePage.blocks);
-
-    if (!editor) {
-      const e = BlockNoteEditor.create({
-        schema,
-        initialContent: safeBlocks,
-        defaultStyles: true,
-        // Enable code block syntax highlighting
-        trailingBlock: false,
-      });
-
-      setEditor(e);
-      return;
-    }
+    
+    // Ensure we always have at least one block
+    const blocksToReplace = safeBlocks.length > 0 
+      ? safeBlocks 
+      : [{ type: "paragraph", content: "" }];
 
     try {
-      editor.replaceBlocks(editor.document, safeBlocks);
+      editor.replaceBlocks(editor.document, blocksToReplace);
     } catch (err) {
       console.error("Failed to replace blocks:", err);
     }
-  }, [activePageId, isLoading]);
+  }, [activePageId, categories, editor, isLoading]);
 
   return editor;
 }

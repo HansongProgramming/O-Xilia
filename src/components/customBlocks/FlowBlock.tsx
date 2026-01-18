@@ -40,6 +40,7 @@ const nodeTypes = {
   info: InfoNode,
 };
 
+// Export the block spec directly, not as a function
 export const flowBlock = createReactBlockSpec(
   { type: "flow", propSchema, content: "none" },
   {
