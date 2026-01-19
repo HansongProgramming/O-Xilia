@@ -29,7 +29,6 @@ export function useEditor(
   const [editor, setEditor] =
     useState<BlockNoteEditor<any, any, any>>();
 
-  // Create editor only once
   useEffect(() => {
     if (isLoading) return;
 
@@ -47,13 +46,11 @@ export function useEditor(
 
     setEditor(e);
 
-    // Cleanup: destroy editor on unmount
     return () => {
       e._tiptapEditor.destroy();
     };
   }, [isLoading]); // Added isLoading to deps
 
-  // Update content when page changes
   useEffect(() => {
     if (isLoading || !editor) return;
 
@@ -65,7 +62,6 @@ export function useEditor(
 
     const safeBlocks = sanitizeBlocks(activePage.blocks);
     
-    // Ensure we always have at least one block
     const blocksToReplace = safeBlocks.length > 0 
       ? safeBlocks 
       : [{ type: "paragraph", content: "" }];
