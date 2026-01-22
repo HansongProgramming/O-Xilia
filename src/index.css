@@ -277,6 +277,7 @@ body {
   background: transparent;
   border: none;
   padding: .6rem .4rem;
+  width: 500px;
 }
 
 .title-input:focus {
