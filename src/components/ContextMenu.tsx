@@ -12,8 +12,10 @@ interface ContextMenusProps {
     id?: string,
     title?: string,
     switchTo?: boolean,
-    type?: PageType
+    type?: PageType,
+    parentId?: string | null
   ) => void;
+  createSubpage?: (parentPageId: string, type?: PageType) => void;
   deleteCategory: (categoryId: string) => void;
   updateCategoryName: (categoryId: string, newName: string) => void;
   setCategoryFolder: (categoryId: string) => void | Promise<void>;
@@ -24,6 +26,7 @@ export default function ContextMenus({
   setContextMenu,
   createCategory,
   createPage,
+  createSubpage,
   deleteCategory,
   setCategoryFolder,
 }: ContextMenusProps) {
@@ -36,6 +39,7 @@ export default function ContextMenus({
       y: 0,
       type: null,
       categoryId: null,
+      pageId: null,
     });
 
   const position = {
@@ -45,56 +49,91 @@ export default function ContextMenus({
     zIndex: 9999,
   };
 
+  // NEW: Page context menu
+  if (contextMenu.type === "page" && contextMenu.pageId) {
+    return (
+      <div
+        className="context-menu"
+        style={position}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => {
+            if (createSubpage) {
+              createSubpage(contextMenu.pageId!, "note");
+            }
+            close();
+          }}
+        >
+          <Icon icon="material-symbols:new-window-rounded" width="16" height="16" color="#fff" />
+          Add Subpage
+        </button>
+
+        <button
+          onClick={() => {
+            if (createSubpage) {
+              createSubpage(contextMenu.pageId!, "channel");
+            }
+            close();
+          }}
+        >
+          <Icon icon="material-symbols:videocam-outline" width="16" height="16" color="#fff" />
+          Add Sub-Channel
+        </button>
+      </div>
+    );
+  }
+
   if (contextMenu.type === "category")
-  return (
-    <div
-      className="context-menu"
-      style={position}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        onClick={() => {
-          createPage(contextMenu.categoryId!); 
-          close();
-        }}
+    return (
+      <div
+        className="context-menu"
+        style={position}
+        onClick={(e) => e.stopPropagation()}
       >
-        <Icon icon="material-symbols:new-window-rounded" width="16" height="16" color="#fff" />
-        Add Page
-      </button>
+        <button
+          onClick={() => {
+            createPage(contextMenu.categoryId!); 
+            close();
+          }}
+        >
+          <Icon icon="material-symbols:new-window-rounded" width="16" height="16" color="#fff" />
+          Add Page
+        </button>
 
-      <button
-        onClick={() => {
-          createPage(contextMenu.categoryId!, undefined, undefined, true, "channel");
-          close();
-        }}
-      >
-        <Icon icon="material-symbols:videocam-outline" width="16" height="16" color="#fff" />
-        Add Channel
-      </button>
+        <button
+          onClick={() => {
+            createPage(contextMenu.categoryId!, undefined, undefined, true, "channel");
+            close();
+          }}
+        >
+          <Icon icon="material-symbols:videocam-outline" width="16" height="16" color="#fff" />
+          Add Channel
+        </button>
 
-      <button
-        onClick={() => {
-          deleteCategory(contextMenu.categoryId!);
-          close();
-        }}
-      >
-        <Icon icon="material-symbols:delete-outline-rounded" width="16" height="16" color="#fff" />
-        Delete
-      </button>
+        <button
+          onClick={() => {
+            deleteCategory(contextMenu.categoryId!);
+            close();
+          }}
+        >
+          <Icon icon="material-symbols:delete-outline-rounded" width="16" height="16" color="#fff" />
+          Delete
+        </button>
 
-      <hr color="#686E7C" />
+        <hr color="#686E7C" />
 
-      <button
-        onClick={() => {
-          setCategoryFolder(contextMenu.categoryId!);
-          close();
-        }}
-      >
-        <Icon icon="ic:baseline-drive-folder-upload" width="16" height="16" color="#fff" />
-        Choose Folder...
-      </button>
-    </div>
-  );
+        <button
+          onClick={() => {
+            setCategoryFolder(contextMenu.categoryId!);
+            close();
+          }}
+        >
+          <Icon icon="ic:baseline-drive-folder-upload" width="16" height="16" color="#fff" />
+          Choose Folder...
+        </button>
+      </div>
+    );
 
   if (contextMenu.type === "sidebar")
     return (
