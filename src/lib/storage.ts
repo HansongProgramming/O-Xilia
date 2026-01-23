@@ -10,6 +10,7 @@ function normalizePages(pages: any[]) {
   return pages.map((page) => ({
     ...page,
     parentId: page.parentId ?? null,
+    isExpanded: page.isExpanded ?? true, // NEW: Default pages to expanded
   }));
 }
 

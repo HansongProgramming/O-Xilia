@@ -23,6 +23,10 @@ interface CategoryItemProps {
   deletePage: (pageId: string) => void;
   setActivePageId: (pageId: string) => void;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
+  togglePageExpanded: (pageId: string) => void;
+  onPageDragOver?: (pageId: string) => void;
+  onPageDragLeave?: () => void;
+  dragTargetPageId?: string | null;
 }
 
 export default function CategoryItem({
@@ -34,6 +38,10 @@ export default function CategoryItem({
   deletePage,
   setActivePageId,
   setContextMenu,
+  togglePageExpanded,
+  onPageDragOver,
+  onPageDragLeave,
+  dragTargetPageId,
 }: CategoryItemProps) {
   const {
     setNodeRef,
@@ -131,6 +139,11 @@ export default function CategoryItem({
                   setActivePageId={setActivePageId}
                   deletePage={deletePage}
                   openIconPicker={openIconPicker}
+                  togglePageExpanded={togglePageExpanded}
+                  setContextMenu={setContextMenu}
+                  onDragOver={onPageDragOver}
+                  onDragLeave={onPageDragLeave}
+                  isDragTarget={dragTargetPageId === page.id}
                 />
               ))}
           </div>

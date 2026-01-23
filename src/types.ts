@@ -6,9 +6,10 @@ export type Page = {
   icon?: string;
   blocks: any[];
   categoryId: string;
-    type: PageType;
+  type: PageType;
   parentId: string | null;
   children?: Page[];
+  isExpanded?: boolean; // NEW: Track if page's children are visible
 };
 
 export type Category = {
@@ -24,8 +25,9 @@ export type ContextMenuState = {
   visible: boolean;
   x: number;
   y: number;
-  type: "category" | "sidebar" | null;
+  type: "category" | "sidebar" | "page" | null; // NEW: Added "page" type
   categoryId: string | null;
+  pageId?: string | null; // NEW: Track which page was right-clicked
 };
 
 export type IconPickerState = {

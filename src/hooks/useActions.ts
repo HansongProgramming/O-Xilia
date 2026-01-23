@@ -17,14 +17,15 @@ export function useActions(
   iconPicker: IconPickerState,
   setIconPicker: (s: IconPickerState) => void
 ) {
-  type PageType = "note" | "channel"; // new
+  type PageType = "note" | "channel";
 
   const createPage = (
     categoryId: string,
     id?: string,
     title?: string,
     switchTo?: boolean,
-    type: PageType = "note" // default is note
+    type: PageType = "note",
+    parentId: string | null = null // NEW: Optional parent page
   ) => {
     const newPage: Page = {
       id: id || uuid(),
@@ -33,7 +34,8 @@ export function useActions(
       categoryId,
       icon: type === "channel" ? "outline-videocam" : "outline-insert-drive-file",
       type,
-      parentId: null,
+      parentId,
+      isExpanded: true, // NEW: Default to expanded
     };
 
     setCategories((prev) =>
@@ -47,6 +49,72 @@ export function useActions(
     if (switchTo) setActivePageId(newPage.id);
   };
 
+  // NEW: Create a subpage under a parent page
+  const createSubpage = (parentPageId: string, type: PageType = "note") => {
+    const parentPage = categories
+      .flatMap((c) => c.pages || [])
+      .find((p) => p.id === parentPageId);
+
+    if (!parentPage) return;
+
+    createPage(
+      parentPage.categoryId,
+      undefined,
+      undefined,
+      true,
+      type,
+      parentPageId
+    );
+
+    // Ensure parent is expanded
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        pages: (cat.pages || []).map((p) =>
+          p.id === parentPageId ? { ...p, isExpanded: true } : p
+        ),
+      }))
+    );
+  };
+
+  // NEW: Move a page to be nested under another page
+  const movePageToParent = (pageId: string, newParentId: string | null) => {
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        pages: (cat.pages || []).map((p) => {
+          if (p.id === pageId) {
+            return { ...p, parentId: newParentId };
+          }
+          return p;
+        }),
+      }))
+    );
+
+    // If moving to a parent, ensure parent is expanded
+    if (newParentId) {
+      setCategories((prev) =>
+        prev.map((cat) => ({
+          ...cat,
+          pages: (cat.pages || []).map((p) =>
+            p.id === newParentId ? { ...p, isExpanded: true } : p
+          ),
+        }))
+      );
+    }
+  };
+
+  // NEW: Toggle page expansion (for pages with children)
+  const togglePageExpanded = (pageId: string) => {
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        pages: (cat.pages || []).map((p) =>
+          p.id === pageId ? { ...p, isExpanded: !p.isExpanded } : p
+        ),
+      }))
+    );
+  };
 
   const createCategory = () => {
     const c: Category = {
@@ -79,6 +147,7 @@ export function useActions(
     );
   };
 
+  // UPDATED: Delete page and handle children
   const deletePage = (pageId: string) => {
     const totalPages = categories.reduce(
       (sum, c) => sum + (c.pages?.length || 0),
@@ -91,10 +160,24 @@ export function useActions(
     }
 
     setCategories((prev) =>
-      prev.map((c) => ({
-        ...c,
-        pages: (c.pages || []).filter((p) => p.id !== pageId),
-      }))
+      prev.map((c) => {
+        const pageToDelete = c.pages?.find((p) => p.id === pageId);
+        if (!pageToDelete) return c;
+
+        // Move children to the deleted page's parent level
+        const updatedPages = (c.pages || []).map((p) => {
+          if (p.parentId === pageId) {
+            return { ...p, parentId: pageToDelete.parentId };
+          }
+          return p;
+        });
+
+        // Remove the deleted page
+        return {
+          ...c,
+          pages: updatedPages.filter((p) => p.id !== pageId),
+        };
+      })
     );
 
     if (activePageId === pageId) {
@@ -274,6 +357,9 @@ export function useActions(
 
   return {
     createPage,
+    createSubpage, // NEW
+    movePageToParent, // NEW
+    togglePageExpanded, // NEW
     updatePageTitle,
     deletePage,
     createCategory,

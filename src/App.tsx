@@ -41,6 +41,7 @@ export default function App() {
       y: 0,
       type: null,
       categoryId: null,
+      pageId: null, // NEW
     });
 
   const [iconPicker, setIconPicker] =
@@ -122,6 +123,9 @@ export default function App() {
           setContextMenu={setContextMenu}
           createCategory={actions.createCategory}
           createPage={actions.createPage}
+          createSubpage={actions.createSubpage}          // NEW
+          movePageToParent={actions.movePageToParent}   // NEW
+          togglePageExpanded={actions.togglePageExpanded} // NEW
           deleteCategory={actions.deleteCategory}
           updateCategoryName={actions.updateCategoryName}
           toggleCategoryExpanded={actions.toggleCategoryExpanded}
